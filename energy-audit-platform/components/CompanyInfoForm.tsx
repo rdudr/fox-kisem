@@ -18,8 +18,8 @@ export default function CompanyInfoForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      <div className="max-w-2xl w-full space-y-8 p-8 bg-white border-2 border-blue-500 rounded-lg shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
+      <div className="max-w-2xl w-full space-y-8 p-8 bg-white border-2 border-blue-500 rounded-lg shadow-2xl">
         <div>
           <h2 className="text-center text-3xl font-bold text-blue-600">
             Company Information

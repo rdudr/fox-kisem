@@ -12,3 +12,5 @@
 - [x] Add empty default state for starter selection
 - [x] Make machine details line-by-line feed use short format + dropdown expansion
 - [x] Implement database wipe (clear cache) on new login session
+- [x] Fix Prisma provider mismatch (PostgreSQL -> SQLite)
+- [x] Implement case-insensitive login validation

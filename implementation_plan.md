@@ -13,4 +13,5 @@
     - Added clearing of the database upon login inside `app/api/auth/login/route.ts`.
 7. **Documentation**: Create `task.md` and `design.md`.
 8. **UI Separation**: Split Areas into Zones and Machines pages to separate the logic.
-9. **Machine Page Feed**: Updated the line-by-line machine feed to show short format by default and a dropdown/expanded view for full details.
+10. **Fix Prisma Provider Issue**: Change `provider` from `postgresql` to `sqlite` in `prisma/schema.prisma` to match the local `dev.db` database URL and allow Prisma to function correctly.
+11. **Case-Insensitive Login**: Update `app/api/auth/login/route.ts` to perform a case-insensitive search for usernames, ensuring login success regardless of casing.

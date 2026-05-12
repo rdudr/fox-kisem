@@ -21,7 +21,9 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid body", details: parsed.error.flatten() }, { status: 400 });
   }
-  const user = await prisma.user.findUnique({ where: { username: parsed.data.username } });
+  const users = await prisma.user.findMany();
+  const user = users.find(u => u.username.toLowerCase() === parsed.data.username.toLowerCase());
+  
   if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }

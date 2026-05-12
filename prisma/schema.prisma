@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StarterType {
+  VFD
+  SD
+  DOL
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime @default(now())
+  entries      Entry[]
+}
+
+model CompanyProfile {
+  id                 String   @id @default(cuid())
+  companyName        String
+  area               String
+  district           String
+  state              String
+  pincode            String
+  overallConsumption Float
+  updatedAt          DateTime @updatedAt
+}
+
+model ZoneTag {
+  id          String   @id @default(cuid())
+  name        String
+  consumption Float
+  
+  v1          Float?
+  v2          Float?
+  v3          Float?
+  uhtd1       Float?
+  uhtd2       Float?
+  uhtd3       Float?
+  i1          Float?
+  i2          Float?
+  i3          Float?
+  ihtd1       Float?
+  ihtd2       Float?
+  ihtd3       Float?
+  pqName      String?
+  description String?
+
+  createdAt   DateTime @default(now())
+  areas       AreaTag[]
+}
+
+model AreaTag {
+  id          String   @id @default(cuid())
+  zoneId      String
+  zone        ZoneTag  @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  name        String
+  createdAt   DateTime @default(now())
+  entries     Entry[]
+}
+
+model Entry {
+  id              String      @id @default(cuid())
+  areaId          String
+  area            AreaTag     @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  machineTag      String
+  starterType     StarterType
+  
+  ratedKw         Float
+  ratedHp         Float?
+  voltage         Float?
+  current         Float?
+  kva             Float?
+  pf              Float?
+  kvar            Float?
+  measuredKw      Float
+  
+  calculatedPower Float
+  loadFactor      Float
+  
+  createdAt       DateTime    @default(now())
+  createdById     String
+  createdBy       User        @relation(fields: [createdById], references: [id])
+
+  @@index([areaId, createdAt])
+}

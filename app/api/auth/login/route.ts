@@ -28,14 +28,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
-  // Removed db wipe from login (now handled in export)
-  const token = await signSessionToken({
-    sub: user.id,
-    email: user.username,
-    role: "ADMIN" as SessionRole,
-  });
-  await setSessionCookie(token);
-  return NextResponse.json({
-    user: { id: user.id, email: user.username, role: "ADMIN", name: user.displayName },
-  });
+  try {
+    const token = await signSessionToken({
+      sub: user.id,
+      email: user.username,
+      role: "ADMIN" as SessionRole,
+    });
+    await setSessionCookie(token);
+    return NextResponse.json({
+      user: { id: user.id, email: user.username, role: "ADMIN", name: user.displayName },
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: "Server config error: " + err.message }, { status: 500 });
+  }
 }

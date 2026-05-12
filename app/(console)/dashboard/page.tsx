@@ -6,7 +6,7 @@ export default async function DashboardPage() {
   const [profile, areas, entries] = await Promise.all([
     prisma.companyProfile.findFirst(),
     prisma.areaTag.findMany(),
-    prisma.entry.findMany({ include: { area: true }, orderBy: { createdAt: "desc" } }),
+    prisma.entry.findMany({ include: { area: { include: { zone: true } } }, orderBy: { createdAt: "desc" } }),
   ]);
   const totalPower = entries.reduce((acc, e) => acc + e.calculatedPower, 0);
   const maxEquipment = entries.reduce((m, e) => (e.calculatedPower > (m?.calculatedPower ?? -1) ? e : m), entries[0]);
@@ -40,8 +40,8 @@ export default async function DashboardPage() {
           <CardContent>
             {maxEquipment ? (
               <>
-                <p className="text-slate-200">{maxEquipment.machineTag} / {maxEquipment.subMachineTag} / {maxEquipment.subSubMachineTag}</p>
-                <p className="text-xs text-slate-400 mb-1">Zone: {maxEquipment.area.name} — Area: {maxEquipment.areaName}</p>
+                <p className="text-slate-200">{maxEquipment.machineTag}</p>
+                <p className="text-xs text-slate-400 mb-1">Zone: {maxEquipment.area?.zone?.name || "N/A"} — Area: {maxEquipment.area?.name || "N/A"}</p>
                 <p className="text-2xl font-semibold text-cyan-300">{maxEquipment.calculatedPower.toFixed(2)} kW</p>
               </>
             ) : <p className="text-slate-400">No entries</p>}

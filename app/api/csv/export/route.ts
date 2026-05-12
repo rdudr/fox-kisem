@@ -77,6 +77,12 @@ export async function GET() {
   // Output buffer
   const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
+  // Wipe data after successful export!
+  await prisma.entry.deleteMany();
+  await prisma.areaTag.deleteMany();
+  await prisma.zoneTag.deleteMany();
+  await prisma.companyProfile.deleteMany();
+
   const now = new Date();
   const ddmm = String(now.getDate()).padStart(2, "0") + String(now.getMonth() + 1).padStart(2, "0");
   const companyStr = profile?.companyName ? profile.companyName.replace(/[^a-z0-9]/gi, "-").toLowerCase() : reporterName.toLowerCase();

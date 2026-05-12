@@ -26,11 +26,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
-  // Clear data to start from blank details as requested
-  await prisma.entry.deleteMany();
-  await prisma.areaTag.deleteMany();
-  await prisma.zoneTag.deleteMany();
-  await prisma.companyProfile.deleteMany();
+  // Removed db wipe from login (now handled in export)
   const token = await signSessionToken({
     sub: user.id,
     email: user.username,

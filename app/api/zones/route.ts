@@ -5,7 +5,6 @@ import { requireApiSession } from "@/lib/api/guard";
 
 const zoneSchema = z.object({
   name: z.string().min(1),
-  consumption: z.number(),
   v1: z.number().optional(),
   v2: z.number().optional(),
   v3: z.number().optional(),

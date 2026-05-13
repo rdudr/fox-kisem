@@ -34,13 +34,13 @@ export async function GET() {
 
   // --- SHEET 1: Plant Main Input ---
   const zoneHeaders = [
-    "Name", "Consumption", "PQ Name", 
+    "Name", "PQ Name", 
     "V1", "V2", "V3", "Uhtd1", "Uhtd2", "Uhtd3", 
     "I1", "I2", "I3", "Ihtd1", "Ihtd2", "Ihtd3", 
     "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Time"
   ];
   const zoneDataRows = zones.map(z => [
-    z.name, f2(z.consumption), z.pqName || "",
+    z.name, z.pqName || "",
     f2(z.v1), f2(z.v2), f2(z.v3), f2(z.uhtd1), f2(z.uhtd2), f2(z.uhtd3),
     f2(z.i1), f2(z.i2), f2(z.i3), f2(z.ihtd1), f2(z.ihtd2), f2(z.ihtd3),
     f3(z.pf), f2(z.kvarD), f2(z.kvarQ), z.kvarLeadLag || "", f2(z.totalPower), z.description || "",

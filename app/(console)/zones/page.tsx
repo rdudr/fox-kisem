@@ -11,7 +11,6 @@ import { toast } from "sonner";
 type Zone = { 
   id: string; 
   name: string; 
-  consumption: number; 
   createdAt: string; 
   pqName?: string; 
   description?: string;
@@ -21,7 +20,7 @@ type Zone = {
 export default function PlantMainInputPage() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [form, setForm] = useState({
-    name: "", consumption: "",
+    name: "",
     v1: "", v2: "", v3: "",
     uhtd1: "", uhtd2: "", uhtd3: "",
     i1: "", i2: "", i3: "",
@@ -74,7 +73,6 @@ export default function PlantMainInputPage() {
   async function addZone() {
     const payload = {
       name: form.name,
-      consumption: Number(form.consumption || 0),
       v1: form.v1 ? Number(form.v1) : undefined,
       v2: form.v2 ? Number(form.v2) : undefined,
       v3: form.v3 ? Number(form.v3) : undefined,
@@ -100,7 +98,7 @@ export default function PlantMainInputPage() {
     if (!r.ok) return toast.error("Save failed");
     
     setForm({
-      name: "", consumption: "",
+      name: "",
       v1: "", v2: "", v3: "",
       uhtd1: "", uhtd2: "", uhtd3: "",
       i1: "", i2: "", i3: "",
@@ -116,9 +114,8 @@ export default function PlantMainInputPage() {
   return (
     <div className="space-y-4">
       <Card><CardHeader><CardTitle>Add Plant Main Input</CardTitle></CardHeader><CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} /></div>
-          <div><Label>Total Consumption</Label><Input type="number" value={form.consumption} onChange={(e) => setForm({...form, consumption: e.target.value})} /></div>
           <div><Label>PQ NAME</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={form.pqName} onChange={(e) => setForm({...form, pqName: e.target.value})}><option value="">Select...</option><option value="Hioki">Hioki</option><option value="ALM36">ALM36</option><option value="ALM31">ALM31</option><option value="ALM45">ALM45</option></select></div>
         </div>
         
@@ -166,13 +163,12 @@ export default function PlantMainInputPage() {
       </CardContent></Card>
 
       <Card><CardHeader><CardTitle>Plant Main Inputs recorded</CardTitle></CardHeader><CardContent>
-        <div className="overflow-x-auto"><table className="w-full text-xs"><thead><tr><th className="text-left px-2 py-1">Name</th><th className="text-left px-2 py-1">PQ Name</th><th className="text-left px-2 py-1">Consumption</th><th className="text-left px-2 py-1">Total Power</th><th className="text-left px-2 py-1">Time</th></tr></thead><tbody>
+        <div className="overflow-x-auto"><table className="w-full text-xs"><thead><tr><th className="text-left px-2 py-1">Name</th><th className="text-left px-2 py-1">PQ Name</th><th className="text-left px-2 py-1">Total Power</th><th className="text-left px-2 py-1">Time</th></tr></thead><tbody>
           {zones.map((z) => (
             <React.Fragment key={z.id}>
               <tr className="border-t border-white/5 hover:bg-white/5 cursor-pointer" onClick={() => setExpanded(expanded === z.id ? null : z.id)}>
                 <td className="px-2 py-2">{z.name}</td>
                 <td className="px-2 py-2">{z.pqName || "N/A"}</td>
-                <td className="px-2 py-2">{z.consumption}</td>
                 <td className="px-2 py-2 text-cyan-400 font-bold">{z.totalPower || 0} kW</td>
                 <td className="px-2 py-2 text-[10px] text-slate-500">{new Date(z.createdAt || Date.now()).toLocaleString()}</td>
               </tr>

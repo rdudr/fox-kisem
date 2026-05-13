@@ -36,7 +36,6 @@ model CompanyProfile {
 model ZoneTag {
   id          String   @id @default(cuid())
   name        String
-  consumption Float
   
   v1          Float?
   v2          Float?

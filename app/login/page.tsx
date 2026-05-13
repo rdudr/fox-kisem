@@ -29,10 +29,9 @@ export default function LoginPage() {
         return;
       }
       toast.success("Signed in");
-      const next =
-        typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("next") || "/company"
-          : "/company";
+      const urlParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      const nextParam = urlParams.get("next");
+      const next = nextParam || data.redirect || "/company";
       router.push(next);
       router.refresh();
     } finally {

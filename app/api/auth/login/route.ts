@@ -35,8 +35,14 @@ export async function POST(req: Request) {
       role: "ADMIN" as SessionRole,
     });
     await setSessionCookie(token);
+
+    // Check if company profile exists to determine redirect
+    const profile = await prisma.companyProfile.findFirst();
+    const redirectUrl = profile ? "/zones" : "/company";
+
     return NextResponse.json({
       user: { id: user.id, email: user.username, role: "ADMIN", name: user.displayName },
+      redirect: redirectUrl,
     });
   } catch (err: any) {
     return NextResponse.json({ error: "Server config error: " + err.message }, { status: 500 });

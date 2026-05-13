@@ -12,7 +12,6 @@ const nav = [
   { href: "/zones", label: "Plant Main Input", icon: MapPinned },
   { href: "/areas", label: "MCC/PCC", icon: MapPinned },
   { href: "/machines", label: "Motor Load", icon: FileSpreadsheet },
-  { href: "/csv", label: "Excel Export", icon: FileSpreadsheet },
 ];
 
 export function ConsoleShell({

@@ -16,3 +16,9 @@
 - [x] Implement case-insensitive login validation
 - [x] Add user Faizan to database seed
 - [x] Update Faizan's password to IITGN5
+- [x] Secure git repository by ignoring and untracking sensitive/test files
+- [x] Rename UI terminology (Zone -> Plant Main Input, Area -> MCC/PCC, Entry -> Motor Load)
+- [x] Update Prisma Schema for new PQ fields (KVAr, V/I phases, Description)
+- [x] Implement Auto Rated HP calculation based on Rated kW
+- [x] Implement real-time Total Power calculation for Plant Main Input & MCC/PCC
+- [x] Convert CSV export to Multi-sheet Excel export using xlsx

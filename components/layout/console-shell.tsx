@@ -9,10 +9,10 @@ import { Building2, FileSpreadsheet, LayoutDashboard, MapPinned } from "lucide-r
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/company", label: "Company", icon: Building2 },
-  { href: "/zones", label: "Zones", icon: MapPinned },
-  { href: "/areas", label: "Areas", icon: MapPinned },
-  { href: "/machines", label: "Machine Entries", icon: FileSpreadsheet },
-  { href: "/csv", label: "CSV Export", icon: FileSpreadsheet },
+  { href: "/zones", label: "Plant Main Input", icon: MapPinned },
+  { href: "/areas", label: "MCC/PCC", icon: MapPinned },
+  { href: "/machines", label: "Motor Load", icon: FileSpreadsheet },
+  { href: "/csv", label: "Excel Export", icon: FileSpreadsheet },
 ];
 
 export function ConsoleShell({

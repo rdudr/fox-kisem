@@ -15,6 +15,7 @@ const entrySchema = z.object({
   pf: z.number().optional(),
   kvar: z.number().optional(),
   measuredKw: z.number(),
+  description: z.string().optional(),
 });
 
 export async function GET() {
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
   const parsed = entrySchema.safeParse(json);
   if (!parsed.success) return NextResponse.json({ error: "Invalid body", details: parsed.error.flatten() }, { status: 400 });
 
-  const { areaId, machineTag, starterType, ratedKw, ratedHp, voltage, current, kva, pf, kvar, measuredKw } = parsed.data;
+  const { areaId, machineTag, starterType, ratedKw, ratedHp, voltage, current, kva, pf, kvar, measuredKw, description } = parsed.data;
 
   // Real calculations
   const calculatedPower = (voltage && current && pf) ? (1.732 * voltage * current * pf) / 1000 : 0;
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
   const entry = await prisma.entry.create({
     data: {
       areaId, machineTag, starterType,
-      ratedKw, ratedHp, voltage, current, kva, pf, kvar, measuredKw,
+      ratedKw, ratedHp, voltage, current, kva, pf, kvar, measuredKw, description,
       calculatedPower, loadFactor,
       createdById: gate.sub,
     },

@@ -45,3 +45,16 @@ next-env.d.ts
 
 # Local binary uploads (use object storage in production)
 /uploads
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Test & Script Files
+test-*.ts
+proxy.ts
+
+# Sample / Sensitive Data
+public/samples/

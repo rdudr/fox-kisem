@@ -50,8 +50,14 @@ model ZoneTag {
   ihtd1       Float?
   ihtd2       Float?
   ihtd3       Float?
+  pf          Float?
   pqName      String?
   description String?
+  
+  kvarD       Float?
+  kvarQ       Float?
+  kvarLeadLag String?
+  totalPower  Float?
 
   createdAt   DateTime @default(now())
   areas       AreaTag[]
@@ -62,6 +68,27 @@ model AreaTag {
   zoneId      String
   zone        ZoneTag  @relation(fields: [zoneId], references: [id], onDelete: Cascade)
   name        String
+  
+  pqName      String?
+  v1          Float?
+  v2          Float?
+  v3          Float?
+  uhtd1       Float?
+  uhtd2       Float?
+  uhtd3       Float?
+  i1          Float?
+  i2          Float?
+  i3          Float?
+  ihtd1       Float?
+  ihtd2       Float?
+  ihtd3       Float?
+  pf          Float?
+  kvarD       Float?
+  kvarQ       Float?
+  kvarLeadLag String?
+  totalPower  Float?
+  description String?
+
   createdAt   DateTime @default(now())
   entries     Entry[]
 }
@@ -84,6 +111,7 @@ model Entry {
   
   calculatedPower Float
   loadFactor      Float
+  description     String?
   
   createdAt       DateTime    @default(now())
   createdById     String

@@ -6,6 +6,25 @@ import { requireApiSession } from "@/lib/api/guard";
 const areaSchema = z.object({
   zoneId: z.string().min(1),
   name: z.string().min(1),
+  pqName: z.string().optional(),
+  v1: z.number().optional(),
+  v2: z.number().optional(),
+  v3: z.number().optional(),
+  uhtd1: z.number().optional(),
+  uhtd2: z.number().optional(),
+  uhtd3: z.number().optional(),
+  i1: z.number().optional(),
+  i2: z.number().optional(),
+  i3: z.number().optional(),
+  ihtd1: z.number().optional(),
+  ihtd2: z.number().optional(),
+  ihtd3: z.number().optional(),
+  pf: z.number().optional(),
+  kvarD: z.number().optional(),
+  kvarQ: z.number().optional(),
+  kvarLeadLag: z.string().optional(),
+  totalPower: z.number().optional(),
+  description: z.string().optional(),
 });
 
 export async function GET() {

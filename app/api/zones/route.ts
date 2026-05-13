@@ -18,8 +18,13 @@ const zoneSchema = z.object({
   ihtd1: z.number().optional(),
   ihtd2: z.number().optional(),
   ihtd3: z.number().optional(),
+  pf: z.number().optional(),
   pqName: z.string().optional(),
   description: z.string().optional(),
+  kvarD: z.number().optional(),
+  kvarQ: z.number().optional(),
+  kvarLeadLag: z.string().optional(),
+  totalPower: z.number().optional(),
 });
 
 export async function GET() {

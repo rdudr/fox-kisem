@@ -34,6 +34,8 @@ export default function MccPccPage() {
   
   const [totalPower, setTotalPower] = useState(0);
 
+  const [expanded, setExpanded] = useState<string | null>(null);
+
   const load = async () => {
     const [zRes, aRes] = await Promise.all([fetch("/api/zones"), fetch("/api/areas")]);
     const [zData, aData] = await Promise.all([zRes.json(), aRes.json()]);
@@ -175,7 +177,31 @@ export default function MccPccPage() {
 
       <Card><CardHeader><CardTitle>MCC/PCC recorded</CardTitle></CardHeader><CardContent>
         <div className="overflow-x-auto"><table className="w-full text-xs"><thead><tr><th className="text-left px-2 py-1">Plant Input</th><th className="text-left px-2 py-1">MCC/PCC Name</th><th className="text-left px-2 py-1">PQ Name</th><th className="text-left px-2 py-1">Total Power</th><th className="text-left px-2 py-1">Time</th></tr></thead><tbody>
-          {areas.map((a) => <tr key={a.id} className="border-t border-white/5"><td className="px-2 py-1">{a.zone?.name}</td><td className="px-2 py-1">{a.name}</td><td className="px-2 py-1">{a.pqName || "N/A"}</td><td className="px-2 py-1">{a.totalPower || 0} kW</td><td className="px-2 py-1">{new Date(a.createdAt || Date.now()).toLocaleString()}</td></tr>)}
+          {areas.map((a) => (
+            <React.Fragment key={a.id}>
+              <tr className="border-t border-white/5 hover:bg-white/5 cursor-pointer" onClick={() => setExpanded(expanded === a.id ? null : a.id)}>
+                <td className="px-2 py-2">{a.zone?.name}</td>
+                <td className="px-2 py-2">{a.name}</td>
+                <td className="px-2 py-2">{a.pqName || "N/A"}</td>
+                <td className="px-2 py-2 text-cyan-400 font-bold">{a.totalPower || 0} kW</td>
+                <td className="px-2 py-2 text-[10px] text-slate-500">{new Date(a.createdAt || Date.now()).toLocaleString()}</td>
+              </tr>
+              {expanded === a.id && (
+                <tr className="bg-slate-900/50"><td colSpan={5} className="px-4 py-3">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-slate-300">
+                    <div><span className="block text-[10px] uppercase text-slate-500">V1 / V2 / V3</span>{(a as any).v1 ?? "-"}{(a as any).v2 !== undefined ? ` / ${(a as any).v2}` : ""}{(a as any).v3 !== undefined ? ` / ${(a as any).v3}` : ""}</div>
+                    <div><span className="block text-[10px] uppercase text-slate-500">Uhtd 1 / 2 / 3</span>{(a as any).uhtd1 ?? "-"}{(a as any).uhtd2 !== undefined ? ` / ${(a as any).uhtd2}` : ""}{(a as any).uhtd3 !== undefined ? ` / ${(a as any).uhtd3}` : ""}</div>
+                    <div><span className="block text-[10px] uppercase text-slate-500">I1 / I2 / I3</span>{(a as any).i1 ?? "-"}{(a as any).i2 !== undefined ? ` / ${(a as any).i2}` : ""}{(a as any).i3 !== undefined ? ` / ${(a as any).i3}` : ""}</div>
+                    <div><span className="block text-[10px] uppercase text-slate-500">Ihtd 1 / 2 / 3</span>{(a as any).ihtd1 ?? "-"}{(a as any).ihtd2 !== undefined ? ` / ${(a as any).ihtd2}` : ""}{(a as any).ihtd3 !== undefined ? ` / ${(a as any).ihtd3}` : ""}</div>
+                    <div><span className="block text-[10px] uppercase text-slate-500">Power Factor</span>{(a as any).pf ?? "-"}</div>
+                    <div><span className="block text-[10px] uppercase text-slate-500">KVAr (D) / KVAr (Q)</span>{(a as any).kvarD ?? "-"} / {(a as any).kvarQ ?? "-"}</div>
+                    <div><span className="block text-[10px] uppercase text-slate-500">KVAr Lead/Lag</span>{(a as any).kvarLeadLag ?? "-"}</div>
+                    <div className="col-span-2"><span className="block text-[10px] uppercase text-slate-500">Description</span>{a.description || "N/A"}</div>
+                  </div>
+                </td></tr>
+              )}
+            </React.Fragment>
+          ))}
         </tbody></table></div>
       </CardContent></Card>
     </div>

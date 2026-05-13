@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 import { signSessionToken, setSessionCookie } from "@/lib/auth/session";
 import type { SessionRole } from "@/lib/auth/jwt";
+import { checkAndWipeStaleData } from "@/lib/cleanup";
 
 const bodySchema = z.object({
   username: z.string().min(1),
@@ -35,6 +36,8 @@ export async function POST(req: Request) {
       role: "ADMIN" as SessionRole,
     });
     await setSessionCookie(token);
+
+    await checkAndWipeStaleData();
 
     // Check if company profile exists to determine redirect
     const profile = await prisma.companyProfile.findFirst();

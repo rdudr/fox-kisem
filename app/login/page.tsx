@@ -7,33 +7,52 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function LoginPage() {
   const router = useRouter();
+  const login = useAuthStore((s) => s.login);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // If already authenticated, redirect immediately
+  if (typeof window !== "undefined" && isAuthenticated()) {
+    router.replace("/dashboard");
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error || "Login failed");
+      // Try offline login first
+      const offlineOk = login(username, password);
+      if (offlineOk) {
+        toast.success("Signed in (offline)");
+        router.push("/dashboard");
         return;
       }
-      toast.success("Signed in");
-      const urlParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-      const nextParam = urlParams.get("next");
-      const next = nextParam || data.redirect || "/company";
-      router.push(next);
-      router.refresh();
+
+      // Fallback: try server login if online
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          toast.success("Signed in");
+          router.push(data.redirect || "/dashboard");
+          return;
+        }
+      } catch {
+        // Offline — server unreachable, already tried offline above
+      }
+
+      toast.error("Invalid credentials");
     } finally {
       setLoading(false);
     }
@@ -50,7 +69,7 @@ export default function LoginPage() {
         <CardContent>
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Username / ID</Label>
               <Input
                 id="username"
                 type="text"
@@ -75,7 +94,7 @@ export default function LoginPage() {
               {loading ? "Signing in…" : "Sign in"}
             </Button>
             <p className="text-[11px] leading-relaxed text-slate-500">
-              Allowed users: Abhay, Rahulpatel, DhruvIT, Sagar, Rishabh.
+              Works offline. Use your assigned ID and password.
             </p>
           </form>
         </CardContent>

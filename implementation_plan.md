@@ -16,3 +16,7 @@
 10. **Fix Prisma Provider Issue**: Change `provider` from `postgresql` to `sqlite` in `prisma/schema.prisma` to match the local `dev.db` database URL and allow Prisma to function correctly.
 11. **Case-Insensitive Login**: Update `app/api/auth/login/route.ts` to perform a case-insensitive search for usernames, ensuring login success regardless of casing.
 12. **Add New User**: Added user `Faizan` with password `IITGN5` to `prisma/seed.ts` and seeded the database.
+13. **Phase 1: Local Offline Database setup**: Configure `zustand` with `persist` using IndexedDB. Migrate `CompanyProfile`, `Zones`, `Areas`, and `Entries` client side. Remove API-based fetching from UI components.
+14. **Phase 2: Offline Excel Export**: Move Excel generation logic to client-side utility using `xlsx` to enable native `.xlsx` download directly from browser/device without network.
+15. **Phase 3: Cloud Sync Mechanism**: Create `/api/sync` endpoint in Next.js to receive offline data payload. Add "Sync to Cloud" button in the Dashboard UI.
+16. **Phase 4: Static Export & Capacitor Android Integration**: Implement client-side AuthGuard & offline user credentials store. Configure static Next.js export (`output: "export"`). Ensure API routes are marked static to prevent build failures. Build static files to `out/` via `npm run build:mobile`. Initialize Capacitor project and sync web assets to Android platform.

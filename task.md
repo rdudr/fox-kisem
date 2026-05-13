@@ -14,8 +14,12 @@
   - [x] Migrate `Areas` (MCC/PCC) to Client Side.
   - [x] Migrate `Entries` (Motor Loads) to Client Side.
   - [x] Remove all `fetch('/api/...')` from UI components.
-- [x] Change CSV export filename format to company_DDMM.csv
-- [x] Separate Zone and Machine details pages
+- [x] **Phase 2: Offline Excel Export**
+  - [x] Move Excel generation logic from API route to a client-side utility function.
+  - [x] Enable native `.xlsx` download directly from the browser/device without network.
+- [x] **Phase 3: Cloud Sync Mechanism**
+  - [x] Create `/api/sync` endpoint in Next.js to receive offline data payload.
+  - [x] Add "Sync to Server" button in the Dashboard UI.
 - [x] Add empty default state for starter selection
 - [x] Make machine details line-by-line feed use short format + dropdown expansion
 - [x] Implement database wipe (clear cache) on new login session
@@ -29,3 +33,9 @@
 - [x] Implement Auto Rated HP calculation based on Rated kW
 - [x] Implement real-time Total Power calculation for Plant Main Input & MCC/PCC
 - [x] Convert CSV export to Multi-sheet Excel export using xlsx
+- [x] **Phase 4: Static Export & Capacitor Android Integration**
+  - [x] Implement client-side AuthGuard & offline user credentials store.
+  - [x] Configure static Next.js export (`output: "export"`).
+  - [x] Ensure API routes are marked static to prevent build failures.
+  - [x] Build static files to `out/` via `npm run build:mobile`.
+  - [x] Initialize Capacitor project and sync web assets to Android platform.

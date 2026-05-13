@@ -18,7 +18,7 @@ export function ConsoleShell({
   user,
   children,
 }: {
-  user: { email: string; name: string | null; role: string };
+  user: { id?: string; displayName?: string; username?: string; email?: string; name?: string | null; role?: string } | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "/dashboard";
@@ -57,9 +57,9 @@ export function ConsoleShell({
           <header className="flex flex-col gap-3 rounded-xl border border-white/10 bg-slate-950/40 px-4 py-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Signed in</p>
-              <p className="text-sm font-semibold text-slate-50">{user.name ?? user.email}</p>
+              <p className="text-sm font-semibold text-slate-50">{user?.displayName ?? user?.name ?? user?.email ?? "User"}</p>
               <p className="text-xs text-slate-500">
-                {user.email} · <span className="text-cyan-300/90">{user.role}</span>
+                {user?.username ?? user?.email ?? user?.id} · <span className="text-cyan-300/90">{user?.role ?? "Offline"}</span>
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

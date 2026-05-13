@@ -1,11 +1,21 @@
-import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth/session";
+"use client";
+
+import { AuthGuard } from "@/components/auth-guard";
 import { ConsoleShell } from "@/components/layout/console-shell";
+import { useAuthStore } from "@/lib/auth-store";
 
-export const dynamic = "force-dynamic";
+export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
+  const displayName = useAuthStore((s) => s.displayName);
+  const userId = useAuthStore((s) => s.userId);
 
-export default async function ConsoleLayout({ children }: { children: React.ReactNode }) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
-  return <ConsoleShell user={user}>{children}</ConsoleShell>;
+  // Minimal user shape that ConsoleShell expects
+  const user = userId ? { id: userId, displayName: displayName ?? userId, username: userId } : null;
+
+  return (
+    <AuthGuard>
+      <ConsoleShell user={user}>
+        {children}
+      </ConsoleShell>
+    </AuthGuard>
+  );
 }

@@ -6,9 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAppStore } from "@/lib/store";
 
 export default function CompanyPage() {
   const [loading, setLoading] = useState(false);
+  const profile = useAppStore((state) => state.profile);
+  const setProfile = useAppStore((state) => state.setProfile);
+  
   const [form, setForm] = useState({
     companyName: "",
     area: "",
@@ -18,21 +22,19 @@ export default function CompanyPage() {
     overallConsumption: "",
   });
 
+  // Sync form with store
   useEffect(() => {
-    void fetch("/api/company")
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.profile) return;
-        setForm({
-          companyName: d.profile.companyName,
-          area: d.profile.area,
-          district: d.profile.district,
-          state: d.profile.state,
-          pincode: d.profile.pincode,
-          overallConsumption: String(d.profile.overallConsumption),
-        });
+    if (profile) {
+      setForm({
+        companyName: profile.companyName,
+        area: profile.area,
+        district: profile.district,
+        state: profile.state,
+        pincode: profile.pincode,
+        overallConsumption: String(profile.overallConsumption),
       });
-  }, []);
+    }
+  }, [profile]);
 
   async function save() {
     if (!form.companyName || !form.area) {
@@ -40,16 +42,13 @@ export default function CompanyPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/company", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          overallConsumption: Number(form.overallConsumption || 0),
-        }),
+      setProfile({
+        id: profile?.id || crypto.randomUUID(),
+        ...form,
+        overallConsumption: Number(form.overallConsumption || 0),
+        updatedAt: new Date().toISOString(),
       });
-      if (!res.ok) return toast.error("Failed to save");
-      toast.success("Company profile saved");
+      toast.success("Company profile saved locally");
     } finally {
       setLoading(false);
     }

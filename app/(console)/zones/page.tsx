@@ -7,18 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-
-type Zone = { 
-  id: string; 
-  name: string; 
-  createdAt: string; 
-  pqName?: string; 
-  description?: string;
-  totalPower?: number;
-};
+import { useAppStore } from "@/lib/store";
 
 export default function PlantMainInputPage() {
-  const [zones, setZones] = useState<Zone[]>([]);
   const [form, setForm] = useState({
     name: "",
     v1: "", v2: "", v3: "",
@@ -33,15 +24,8 @@ export default function PlantMainInputPage() {
 
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const load = async () => {
-    const r = await fetch("/api/zones");
-    const d = await r.json();
-    setZones(d.zones ?? []);
-  };
-
-  useEffect(() => {
-    void load();
-  }, []);
+  const zones = useAppStore((state) => state.zones);
+  const addZoneAction = useAppStore((state) => state.addZone);
 
   // Real-time calculation of Total Power
   useEffect(() => {
@@ -71,7 +55,10 @@ export default function PlantMainInputPage() {
   }, [form.v1, form.v2, form.v3, form.i1, form.i2, form.i3, form.pf]);
 
   async function addZone() {
+    if (!form.name) return toast.error("Name is required");
+
     const payload = {
+      id: crypto.randomUUID(),
       name: form.name,
       v1: form.v1 ? Number(form.v1) : undefined,
       v2: form.v2 ? Number(form.v2) : undefined,
@@ -92,10 +79,10 @@ export default function PlantMainInputPage() {
       totalPower: totalPower,
       pqName: form.pqName || undefined,
       description: form.description || undefined,
+      createdAt: new Date().toISOString(),
     };
     
-    const r = await fetch("/api/zones", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    if (!r.ok) return toast.error("Save failed");
+    addZoneAction(payload);
     
     setForm({
       name: "",
@@ -107,8 +94,7 @@ export default function PlantMainInputPage() {
       pqName: "", description: ""
     });
     setTotalPower(0);
-    await load(); 
-    toast.success("Plant Main Input added");
+    toast.success("Plant Main Input added locally");
   }
 
   return (
@@ -159,7 +145,7 @@ export default function PlantMainInputPage() {
           <Textarea className="h-20" placeholder="Add additional info..." value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} />
         </div>
 
-        <div className="flex items-end gap-2 pt-2"><Button onClick={() => void addZone()}>Add Entry</Button><Button variant="secondary" onClick={() => void load()}>Refresh</Button></div>
+        <div className="flex items-end gap-2 pt-2"><Button onClick={() => void addZone()}>Add Entry</Button></div>
       </CardContent></Card>
 
       <Card><CardHeader><CardTitle>Plant Main Inputs recorded</CardTitle></CardHeader><CardContent>

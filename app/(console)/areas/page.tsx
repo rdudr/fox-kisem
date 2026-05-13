@@ -7,21 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-
-type Zone = { id: string; name: string };
-type Area = { 
-  id: string; 
-  name: string; 
-  zone: Zone; 
-  createdAt: string;
-  pqName?: string;
-  totalPower?: number;
-  description?: string;
-};
+import { useAppStore } from "@/lib/store";
 
 export default function MccPccPage() {
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [areas, setAreas] = useState<Area[]>([]);
   
   const [form, setForm] = useState({
     zoneId: "", name: "",
@@ -37,19 +25,15 @@ export default function MccPccPage() {
 
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const load = async () => {
-    const [zRes, aRes] = await Promise.all([fetch("/api/zones"), fetch("/api/areas")]);
-    const [zData, aData] = await Promise.all([zRes.json(), aRes.json()]);
-    setZones(zData.zones ?? []);
-    setAreas(aData.areas ?? []);
-    if (!form.zoneId && zData.zones?.[0]?.id) {
-      setForm(prev => ({ ...prev, zoneId: zData.zones[0].id }));
-    }
-  };
+  const zones = useAppStore((state) => state.zones);
+  const areas = useAppStore((state) => state.areas);
+  const addAreaAction = useAppStore((state) => state.addArea);
 
   useEffect(() => {
-    void load();
-  }, []);
+    if (!form.zoneId && zones.length > 0) {
+      setForm(prev => ({ ...prev, zoneId: zones[0].id }));
+    }
+  }, [zones]);
 
   // Real-time calculation of Total Power
   useEffect(() => {
@@ -83,6 +67,7 @@ export default function MccPccPage() {
     if (!form.name) return toast.error("MCC/PCC name required");
 
     const payload = {
+      id: crypto.randomUUID(),
       zoneId: form.zoneId,
       name: form.name,
       v1: form.v1 ? Number(form.v1) : undefined,
@@ -104,10 +89,10 @@ export default function MccPccPage() {
       totalPower: totalPower,
       pqName: form.pqName || undefined,
       description: form.description || undefined,
+      createdAt: new Date().toISOString(),
     };
     
-    const r = await fetch("/api/areas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    if (!r.ok) return toast.error("Save failed");
+    addAreaAction(payload);
     
     setForm(prev => ({
       ...prev,
@@ -120,8 +105,7 @@ export default function MccPccPage() {
       pqName: "", description: ""
     }));
     setTotalPower(0);
-    await load(); 
-    toast.success("MCC/PCC added");
+    toast.success("MCC/PCC added locally");
   }
 
   return (
@@ -173,7 +157,7 @@ export default function MccPccPage() {
           <Textarea className="h-20" placeholder="Add additional info..." value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} />
         </div>
 
-        <div className="flex items-end gap-2 pt-2"><Button onClick={() => void addMccPcc()}>Add Entry</Button><Button variant="secondary" onClick={() => void load()}>Refresh</Button></div>
+        <div className="flex items-end gap-2 pt-2"><Button onClick={() => void addMccPcc()}>Add Entry</Button></div>
       </CardContent></Card>
 
       <Card><CardHeader><CardTitle>MCC/PCC recorded</CardTitle></CardHeader><CardContent>
@@ -181,7 +165,7 @@ export default function MccPccPage() {
           {areas.map((a) => (
             <React.Fragment key={a.id}>
               <tr className="border-t border-white/5 hover:bg-white/5 cursor-pointer" onClick={() => setExpanded(expanded === a.id ? null : a.id)}>
-                <td className="px-2 py-2">{a.zone?.name}</td>
+                <td className="px-2 py-2">{zones.find(z => z.id === a.zoneId)?.name || "Unknown"}</td>
                 <td className="px-2 py-2">{a.name}</td>
                 <td className="px-2 py-2">{a.pqName || "N/A"}</td>
                 <td className="px-2 py-2 text-cyan-400 font-bold">{a.totalPower || 0} kW</td>

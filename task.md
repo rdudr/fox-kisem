@@ -7,6 +7,13 @@
 - [x] Update Zones/Areas UI (adding new fields & renaming)
 - [x] Update API routes for entries and CSV export
 - [x] Verify CSV filename uses company name
+- [x] **Phase 1: Local Offline Database setup**
+  - [x] Configure `zustand` with `persist` using IndexedDB.
+  - [x] Migrate `CompanyProfile` to Client Side.
+  - [x] Migrate `Zones` (Plant Main Input) to Client Side.
+  - [x] Migrate `Areas` (MCC/PCC) to Client Side.
+  - [x] Migrate `Entries` (Motor Loads) to Client Side.
+  - [x] Remove all `fetch('/api/...')` from UI components.
 - [x] Change CSV export filename format to company_DDMM.csv
 - [x] Separate Zone and Machine details pages
 - [x] Add empty default state for starter selection

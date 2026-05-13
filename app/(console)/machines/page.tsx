@@ -8,20 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-type Zone = { id: string; name: string };
-type Area = { id: string; name: string; zone: Zone };
-type EntryRow = { 
-  id: string; area: Area; machineTag: string; starterType: string; 
-  calculatedPower: number; loadFactor: number; createdAt: string; 
-  ratedKw: number; ratedHp?: number; voltage?: number; current?: number; 
-  kva?: number; pf?: number; kvar?: number; measuredKw: number;
-  description?: string;
-};
+import { useAppStore } from "@/lib/store";
+import { StarterType } from "@prisma/client";
 
 export default function MotorLoadPage() {
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [entries, setEntries] = useState<EntryRow[]>([]);
   
   const [entry, setEntry] = useState({
     areaId: "",
@@ -38,19 +28,18 @@ export default function MotorLoadPage() {
     description: "",
   });
 
+  const zones = useAppStore((state) => state.zones);
+  const areas = useAppStore((state) => state.areas);
+  const entries = useAppStore((state) => state.entries);
+  const addEntryAction = useAppStore((state) => state.addEntry);
+
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const load = async () => {
-    const [aRes, eRes] = await Promise.all([fetch("/api/areas"), fetch("/api/machines")]);
-    const aData = await aRes.json();
-    const eData = await eRes.json();
-    setAreas(aData.areas ?? []);
-    setEntries(eData.entries ?? []);
-  };
-
   useEffect(() => {
-    void load();
-  }, []);
+    if (!entry.areaId && areas.length > 0) {
+      setEntry(prev => ({ ...prev, areaId: areas[0].id }));
+    }
+  }, [areas]);
 
   // Auto-calculate Rated HP when Rated kW changes
   useEffect(() => {
@@ -80,7 +69,10 @@ export default function MotorLoadPage() {
     if (!entry.ratedKw) return toast.error("Rated kW required");
 
     const payload = {
-      ...entry,
+      id: crypto.randomUUID(),
+      areaId: entry.areaId,
+      machineTag: entry.machineTag,
+      starterType: entry.starterType as StarterType || "DOL",
       ratedKw: Number(entry.ratedKw),
       ratedHp: entry.ratedHp ? Number(entry.ratedHp) : undefined,
       voltage: entry.voltage ? Number(entry.voltage) : undefined,
@@ -89,10 +81,14 @@ export default function MotorLoadPage() {
       pf: entry.pf ? Number(entry.pf) : undefined,
       kvar: entry.kvar ? Number(entry.kvar) : undefined,
       measuredKw: Number(entry.measuredKw),
+      calculatedPower: calculatedPower,
+      loadFactor: loadFactor,
       description: entry.description || undefined,
+      createdAt: new Date().toISOString(),
+      createdById: "local-user",
     };
-    const r = await fetch("/api/machines", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    if (!r.ok) return toast.error("Entry save failed");
+    
+    addEntryAction(payload);
     
     // Clear the input fields but keep the selected Area
     setEntry(prev => ({
@@ -110,8 +106,7 @@ export default function MotorLoadPage() {
       description: "",
     }));
     
-    await load(); 
-    toast.success("Motor Load added");
+    toast.success("Motor Load added locally");
   }
 
   return (
@@ -119,7 +114,7 @@ export default function MotorLoadPage() {
       <Card><CardHeader><CardTitle>Add Motor Load details</CardTitle></CardHeader><CardContent className="space-y-4">
         
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <div><Label>MCC/PCC</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={entry.areaId} onChange={(e) => setEntry({ ...entry, areaId: e.target.value })}><option value="" disabled>Select MCC/PCC...</option>{areas.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.zone?.name})</option>)}</select></div>
+          <div><Label>MCC/PCC</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={entry.areaId} onChange={(e) => setEntry({ ...entry, areaId: e.target.value })}><option value="" disabled>Select MCC/PCC...</option>{areas.map((a) => <option key={a.id} value={a.id}>{a.name} ({zones.find(z => z.id === a.zoneId)?.name || "Unknown"})</option>)}</select></div>
           <div><Label>Machine tag</Label><Input value={entry.machineTag} onChange={(e) => setEntry({ ...entry, machineTag: e.target.value })} /></div>
           <div><Label>Starter</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={entry.starterType} onChange={(e) => setEntry({ ...entry, starterType: e.target.value })}><option value="" disabled>Select starter...</option><option value="VFD">VFD</option><option value="SD">SD</option><option value="DOL">DOL</option></select></div>
           <div><Label>Rated kW</Label><Input type="number" value={entry.ratedKw} onChange={(e) => setEntry({ ...entry, ratedKw: e.target.value })} /></div>
@@ -151,7 +146,7 @@ export default function MotorLoadPage() {
           </div>
         </div>
 
-        <div className="flex items-end gap-2"><Button onClick={() => void addEntry()}>Add Motor Load</Button><Button variant="secondary" onClick={() => void load()}>Refresh</Button></div>
+        <div className="flex items-end gap-2"><Button onClick={() => void addEntry()}>Add Motor Load</Button></div>
       </CardContent></Card>
 
       <Card><CardHeader><CardTitle>Motor Loads recorded</CardTitle></CardHeader><CardContent>
@@ -164,10 +159,13 @@ export default function MotorLoadPage() {
           <th className="text-left px-2 py-1">Load Factor</th>
           <th className="text-left px-2 py-1">Time</th>
         </tr></thead><tbody>
-          {entries.map((e) => (
+          {entries.map((e) => {
+            const area = areas.find(a => a.id === e.areaId);
+            const zone = zones.find(z => z.id === area?.zoneId);
+            return (
             <React.Fragment key={e.id}>
               <tr className="border-t border-white/5 hover:bg-white/5 cursor-pointer" onClick={() => setExpanded(expanded === e.id ? null : e.id)}>
-                <td className="px-2 py-2"><span className="block">{e.area?.name}</span><span className="text-[10px] text-slate-500">{e.area?.zone?.name}</span></td>
+                <td className="px-2 py-2"><span className="block">{area?.name || "Unknown"}</span><span className="text-[10px] text-slate-500">{zone?.name || "Unknown"}</span></td>
                 <td className="px-2 py-2 font-mono">{e.machineTag}</td>
                 <td className="px-2 py-2">{e.ratedKw}</td>
                 <td className="px-2 py-2">{e.measuredKw}</td>
@@ -190,7 +188,8 @@ export default function MotorLoadPage() {
                 </td></tr>
               )}
             </React.Fragment>
-          ))}
+            );
+          })}
         </tbody></table></div>
       </CardContent></Card>
     </div>

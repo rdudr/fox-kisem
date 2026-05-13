@@ -10,6 +10,7 @@ async function main() {
     { username: "DhruvIT", password: "IITGN2" },
     { username: "Sagar", password: "IITGN8" },
     { username: "Rishabh", password: "IITGN9" },
+    { username: "Faizan", password: "IITGN5" },
   ];
   for (const u of users) {
     await prisma.user.upsert({

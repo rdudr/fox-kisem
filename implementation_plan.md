@@ -15,3 +15,4 @@
 8. **UI Separation**: Split Areas into Zones and Machines pages to separate the logic.
 10. **Fix Prisma Provider Issue**: Change `provider` from `postgresql` to `sqlite` in `prisma/schema.prisma` to match the local `dev.db` database URL and allow Prisma to function correctly.
 11. **Case-Insensitive Login**: Update `app/api/auth/login/route.ts` to perform a case-insensitive search for usernames, ensuring login success regardless of casing.
+12. **Add New User**: Added user `Faizan` with password `IITGN5` to `prisma/seed.ts` and seeded the database.

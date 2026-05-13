@@ -14,3 +14,5 @@
 - [x] Implement database wipe (clear cache) on new login session
 - [x] Fix Prisma provider mismatch (PostgreSQL -> SQLite)
 - [x] Implement case-insensitive login validation
+- [x] Add user Faizan to database seed
+- [x] Update Faizan's password to IITGN5

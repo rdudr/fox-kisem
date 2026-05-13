@@ -143,8 +143,8 @@ export default function PlantMainInputPage() {
           <div>
             <Label>KVAr Style</Label>
             <div className="flex gap-2 mt-1">
-              <Button type="button" variant={form.kvarLeadLag === "Lead" ? "default" : "outline"} className="flex-1 h-9" onClick={() => setForm({...form, kvarLeadLag: "Lead"})}>Lead</Button>
-              <Button type="button" variant={form.kvarLeadLag === "Lag" ? "default" : "outline"} className="flex-1 h-9" onClick={() => setForm({...form, kvarLeadLag: "Lag"})}>Lag</Button>
+              <Button type="button" variant={form.kvarLeadLag === "Lead" ? "default" : "secondary"} className="flex-1 h-9" onClick={() => setForm({...form, kvarLeadLag: "Lead"})}>Lead</Button>
+              <Button type="button" variant={form.kvarLeadLag === "Lag" ? "default" : "secondary"} className="flex-1 h-9" onClick={() => setForm({...form, kvarLeadLag: "Lag"})}>Lag</Button>
             </div>
           </div>
           <div>

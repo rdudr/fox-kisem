@@ -16,6 +16,7 @@ type Area = {
   createdAt: string;
   pqName?: string;
   totalPower?: number;
+  description?: string;
 };
 
 export default function MccPccPage() {

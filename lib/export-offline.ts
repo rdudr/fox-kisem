@@ -120,21 +120,40 @@ export async function exportOfflineExcel(
 
   if (Capacitor.isNativePlatform()) {
     try {
-      // Write as base64 to the device Cache directory
+      // Write as base64 to a device-visible directory (prefer Documents/External)
       const base64 = XLSX.write(wb, { bookType: "xlsx", type: "base64" });
-      const result = await Filesystem.writeFile({
-        path: filename,
-        data: base64,
-        directory: Directory.Cache,
-      });
 
-      // Open the Android native Share sheet — user can save to Drive, email it, etc.
-      await Share.share({
-        title: "Fox Kisem — Exported Report",
-        text: `Excel Report for ${profile?.companyName ?? "Company"}`,
-        url: result.uri,
-        dialogTitle: "Save or Share Report",
-      });
+      // Attempt writing to external Documents/Downloads so file is visible to user
+      let result;
+      try {
+        result = await Filesystem.writeFile({
+          path: filename,
+          data: base64,
+          directory: Directory.Documents,
+        });
+      } catch (e) {
+        // Fallback to cache if external write fails
+        console.warn('Write to Documents failed, falling back to Cache:', e);
+        result = await Filesystem.writeFile({
+          path: filename,
+          data: base64,
+          directory: Directory.Cache,
+        });
+      }
+
+      // On native we try not to force the share sheet; the file is written to device storage
+      // but we still provide a quick Share option so user can immediately send or save elsewhere.
+      try {
+        await Share.share({
+          title: "Fox Kisem — Exported Report",
+          text: `Excel Report for ${profile?.companyName ?? "Company"}`,
+          url: result.uri,
+          dialogTitle: "Save or Share Report",
+        });
+      } catch (shareErr) {
+        // Non-blocking: if share is dismissed or fails, ignore — file is already saved.
+        console.info('Share sheet not opened or dismissed:', shareErr);
+      }
     } catch (err) {
       console.error("Native export failed", err);
       alert("Export failed: " + JSON.stringify(err));

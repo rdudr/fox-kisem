@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Download, AlertTriangle, CloudUpload, CheckCircle, SaveAll } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useAuthStore } from "@/lib/auth-store";
-import { exportOfflineExcel } from "@/lib/export-offline";
+import { exportOfflineExcel, buildExcelBase64 } from "@/lib/export-offline";
 import { toast } from "sonner";
 
 export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
@@ -41,26 +41,42 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
       setShowWarning(true);
       return;
     }
-    
-    // 1. Download the Excel file locally immediately
-    await exportOfflineExcel(profile, zones, areas, entries);
-
-    // 2. Snapshot the data and put it in the offline queue
+    // Prepare job and payload
     const jobId = crypto.randomUUID();
+    const payload = { profile, zones, areas, entries };
+
+    // Add job to queue (so it's tracked even if sync fails)
     addJobToQueue({
       jobId,
       status: 'pending',
       createdAt: Date.now(),
       reporterName: displayName || "Engineer",
-      payload: { profile, zones, areas, entries }
+      payload,
     });
 
-    // 3. Clear active workspace memory to be ready for next company
-    wipeData();
-    toast.success("Report Saved Offline & Workspace Cleared");
+    // 1. Download the Excel file locally immediately
+    try {
+      await exportOfflineExcel(profile, zones, areas, entries);
+    } catch (err) {
+      console.error('Local export failed', err);
+      toast.error('Local export failed. Please try again.');
+      return;
+    }
 
-    // 4. Try to sync silently in the background
-    trySyncJob(jobId, { profile, zones, areas, entries });
+    // 2. Clear active workspace memory to be ready for next company
+    wipeData();
+
+    // 3. If online, attempt immediate sync (this will save on server and trigger email)
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      const ok = await trySyncJob(jobId, payload);
+      if (ok) {
+        toast.success('Report exported and emailed to admins!');
+      } else {
+        toast.warning('Saved locally. Will retry to sync when online.');
+      }
+    } else {
+      toast.success('Report Saved Offline & Workspace Cleared');
+    }
   };
 
   const handleSyncAll = async () => {

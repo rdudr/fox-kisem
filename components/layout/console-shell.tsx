@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { cn } from "@/lib/utils";
 import { Building2, FileSpreadsheet, LayoutDashboard, MapPinned } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -22,6 +23,23 @@ export function ConsoleShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "/dashboard";
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_rgba(56,189,248,0.12),_transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(15,23,42,1),_#020617)] text-slate-100">
       <div className="mx-auto flex max-w-[1600px] gap-6 px-4 py-6 lg:px-8">
@@ -55,12 +73,24 @@ export function ConsoleShell({
         </aside>
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <header className="flex flex-col gap-3 rounded-xl border border-white/10 bg-slate-950/40 px-4 py-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Signed in</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Signed in</p>
+                <div className={cn(
+                  "w-2 h-2 rounded-full",
+                  isOnline ? "bg-green-400" : "bg-amber-400"
+                )} />
+                <span className={cn("text-[10px] font-medium", isOnline ? "text-green-300" : "text-amber-300")}>
+                  {isOnline ? "Online" : "Offline"}
+                </span>
+              </div>
               <p className="text-sm font-semibold text-slate-50">{user?.displayName ?? user?.name ?? user?.email ?? "User"}</p>
               <p className="text-xs text-slate-500">
-                {user?.username ?? user?.email ?? user?.id} · <span className="text-cyan-300/90">{user?.role ?? "Offline"}</span>
+                {user?.username ?? user?.email ?? user?.id} · <span className={cn(user?.role === "Offline" || !isOnline ? "text-amber-300" : "text-cyan-300/90")}>{user?.role || (isOnline ? "Server" : "Offline")}</span>
               </p>
+              {!isOnline && (
+                <p className="text-xs text-amber-300/80 mt-1">⚠ Working offline - changes will sync when online</p>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <div className="lg:hidden">

@@ -63,19 +63,19 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
       return;
     }
 
-    // 2. Clear active workspace memory to be ready for next company
-    wipeData();
-
-    // 3. If online, attempt immediate sync (this will save on server and trigger email)
+    // 2. If online, attempt immediate sync (this will save on server and trigger email)
     if (typeof navigator !== 'undefined' && navigator.onLine) {
       const ok = await trySyncJob(jobId, payload);
       if (ok) {
-        toast.success('Report exported and emailed to admins!');
+        // Only clear workspace after successful server sync
+        wipeData();
+        toast.success('Report exported and emailed to admins! Workspace cleared.');
       } else {
-        toast.warning('Saved locally. Will retry to sync when online.');
+        toast.warning('Saved locally. Sync failed; report left in workspace and will retry when online.');
       }
     } else {
-      toast.success('Report Saved Offline & Workspace Cleared');
+      // Offline: keep data in workspace and leave job pending so user can retry sync later
+      toast.success('Report saved locally. You are offline; sync will occur when online.');
     }
   };
 

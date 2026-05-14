@@ -102,8 +102,25 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
   };
 
   const trySyncJob = async (jobId: string, payload: any) => {
+    // Resolve API base: pref from env -> localStorage -> prompt
+    let base = API_BASE;
+    if (!base) {
+      base = localStorage.getItem('FOX_KISEM_SERVER_URL') || '';
+    }
+
+    if (!base && typeof window !== 'undefined' && navigator.onLine) {
+      const entered = window.prompt('Enter server URL to sync reports (e.g. https://example.com):');
+      if (entered) {
+        base = entered.trim();
+        try { localStorage.setItem('FOX_KISEM_SERVER_URL', base); } catch {}
+      }
+    }
+
+    if (!base) return false;
+
     try {
-      const res = await fetch(`${API_BASE}/api/sync/queue`, {
+      const url = base.replace(/\/$/, '') + '/api/sync/queue';
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -117,8 +134,9 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         return true;
       }
       return false;
-    } catch {
-      return false; // Offline
+    } catch (err) {
+      console.warn('trySyncJob failed', err);
+      return false;
     }
   };
 

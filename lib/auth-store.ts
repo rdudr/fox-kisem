@@ -4,11 +4,12 @@ import { persist, createJSONStorage } from "zustand/middleware";
 // Pre-defined users — add more here as needed
 // Passwords are stored as plain text for offline use (no server)
 const OFFLINE_USERS: Record<string, { displayName: string; password: string }> = {
-  "IIGN1": { displayName: "Admin",    password: "IIGN1"  },
-  "IIGN2": { displayName: "User 2",   password: "IIGN2"  },
-  "IIGN3": { displayName: "User 3",   password: "IIGN3"  },
-  "IIGN4": { displayName: "User 4",   password: "IIGN4"  },
-  "IIGN5": { displayName: "Faizan",   password: "IIGN5"  },
+  "ABHAY": { displayName: "Abhay", password: "IITGN1" },
+  "RAHULPATEL": { displayName: "Rahulpatel", password: "IITGN4" },
+  "DHRUVIT": { displayName: "DhruvIT", password: "IITGN2" },
+  "SAGAR": { displayName: "Sagar", password: "IITGN8" },
+  "RISHABH": { displayName: "Rishabh", password: "IITGN9" },
+  "FAIZAN": { displayName: "Faizan", password: "IITGN5" },
 };
 
 type AuthState = {
@@ -46,7 +47,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "fox-kisen-auth",
+      name: "fox-kisem-auth",
       storage: createJSONStorage(() => localStorage),
     }
   )

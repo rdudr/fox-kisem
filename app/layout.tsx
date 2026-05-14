@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fox Kisen — Industrial acquisition & energy",
+  title: "Fox Kisem — Industrial acquisition & energy",
   description: "Machine-wise acquisition, CSV, OCR nameplates, and energy auditing for industrial plants.",
 };
 

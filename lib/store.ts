@@ -98,11 +98,25 @@ export type Entry = {
   createdById: string;
 };
 
+export type SyncJob = {
+  jobId: string;
+  status: 'pending' | 'synced';
+  createdAt: number;
+  reporterName: string;
+  payload: {
+    profile: CompanyProfile | null;
+    zones: ZoneTag[];
+    areas: AreaTag[];
+    entries: Entry[];
+  };
+};
+
 type AppState = {
   profile: CompanyProfile | null;
   zones: ZoneTag[];
   areas: AreaTag[];
   entries: Entry[];
+  syncQueue: SyncJob[];
   
   setProfile: (profile: CompanyProfile) => void;
   addZone: (zone: ZoneTag) => void;
@@ -117,6 +131,10 @@ type AppState = {
   deleteEntry: (id: string) => void;
   
   wipeData: () => void;
+
+  addJobToQueue: (job: SyncJob) => void;
+  updateJobStatus: (jobId: string, status: 'pending' | 'synced') => void;
+  pruneQueue: () => void;
 };
 
 export const useAppStore = create<AppState>()(
@@ -126,6 +144,7 @@ export const useAppStore = create<AppState>()(
       zones: [],
       areas: [],
       entries: [],
+      syncQueue: [],
 
       setProfile: (profile) => set({ profile }),
 
@@ -157,9 +176,31 @@ export const useAppStore = create<AppState>()(
       })),
 
       wipeData: () => set({ profile: null, zones: [], areas: [], entries: [] }),
+
+      addJobToQueue: (job) => set((state) => {
+        // Hard cap at 50 to prevent IndexedDB bloat
+        const newQueue = [job, ...state.syncQueue];
+        if (newQueue.length > 50) newQueue.length = 50;
+        return { syncQueue: newQueue };
+      }),
+      
+      updateJobStatus: (jobId, status) => set((state) => ({
+        syncQueue: state.syncQueue.map(job => job.jobId === jobId ? { ...job, status } : job)
+      })),
+      
+      pruneQueue: () => set((state) => {
+        const now = Date.now();
+        const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
+        return {
+          syncQueue: state.syncQueue.filter(job => 
+            // Keep pending jobs OR synced jobs younger than 48 hours
+            job.status === 'pending' || (now - job.createdAt < FORTY_EIGHT_HOURS)
+          )
+        };
+      })
     }),
     {
-      name: 'fox-kisen-offline-storage',
+      name: 'fox-kisem-offline-storage',
       storage: createJSONStorage(() => idbStorage),
     }
   )

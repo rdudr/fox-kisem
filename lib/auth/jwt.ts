@@ -9,7 +9,7 @@ export const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 function getSecretKey() {
   const secret =
     process.env.SESSION_SECRET ||
-    "fox-kisen-fallback-session-secret-min-32-chars!!";
+    "fox-kisem-fallback-session-secret-min-32-chars!!";
   if (!secret || secret.length < 16) {
     throw new Error("SESSION_SECRET must be set (min 16 characters)");
   }

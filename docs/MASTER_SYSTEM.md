@@ -1,6 +1,6 @@
 # MASTER SYSTEM
 
-Fox Kisen is a production-oriented industrial platform for machine-wise data acquisition, energy auditing, CSV operations, OCR extraction, and dashboard analytics.
+Fox Kisem is a production-oriented industrial platform for machine-wise data acquisition, energy auditing, CSV operations, OCR extraction, and dashboard analytics.
 
 ## Architecture
 

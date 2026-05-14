@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.kisem.foxkisen',
-  appName: 'Fox Kisen',
+  appId: 'com.kisem.foxkisem',
+  appName: 'Fox Kisem',
   webDir: 'out'
 };
 

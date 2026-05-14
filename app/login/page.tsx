@@ -20,7 +20,7 @@ export default function LoginPage() {
 
   // If already authenticated, redirect immediately
   if (typeof window !== "undefined" && isAuthenticated()) {
-    router.replace("/dashboard");
+    router.replace("/company");
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -31,7 +31,7 @@ export default function LoginPage() {
       const offlineOk = login(username, password);
       if (offlineOk) {
         toast.success("Signed in (offline)");
-        router.push("/dashboard");
+        router.push("/company");
         return;
       }
 
@@ -45,7 +45,7 @@ export default function LoginPage() {
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           toast.success("Signed in");
-          router.push(data.redirect || "/dashboard");
+          router.push(data.redirect || "/company");
           return;
         }
       } catch {

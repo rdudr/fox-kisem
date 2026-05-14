@@ -28,7 +28,7 @@ export function ConsoleShell({
         <aside className="hidden w-56 shrink-0 flex-col gap-6 lg:flex">
           <div className="rounded-xl border border-white/10 bg-slate-950/50 p-4 backdrop-blur-md flex flex-col items-center text-center">
             <img src="/iitgnlogo.png" alt="IITGN Logo" className="h-16 mb-3" />
-            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300/80">Fox Kisen</div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300/80">Fox Kisem</div>
             <p className="mt-2 text-xs text-slate-400">by Kisem IITGN</p>
           </div>
           <nav className="flex flex-col gap-1">

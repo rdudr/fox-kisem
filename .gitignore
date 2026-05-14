@@ -58,3 +58,7 @@ proxy.ts
 
 # Sample / Sensitive Data
 public/samples/
+
+# Android JDK (too large for git)
+/android/jdk21/
+android/jdk21.zip

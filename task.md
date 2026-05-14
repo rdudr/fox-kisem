@@ -39,3 +39,25 @@
   - [x] Ensure API routes are marked static to prevent build failures.
   - [x] Build static files to `out/` via `npm run build:mobile`.
   - [x] Initialize Capacitor project and sync web assets to Android platform.
+  - [x] Resolve JDK 21 / Gradle toolchain error for successful APK build.
+- [x] **Phase 5: App Icon, Email & Smart Sync Queue**
+  - [x] Generate Android app icon from `APP logo.png` at all mipmap sizes (mdpi → xxxhdpi).
+  - [x] Fix Excel download for Capacitor WebView (Blob URL instead of `writeFile`).
+  - [x] Add Offline Sync Queue (`SyncJob`) to Zustand store with 50-job cap.
+  - [x] Auto-prune synced jobs older than 48 hours (TTL memory management).
+  - [x] Create `/api/sync/queue` route: saves to DB + sends Gmail email to hardcoded admins.
+  - [x] "Export & Complete" button: exports Excel locally, snapshots data, wipes workspace.
+  - [x] "Sync Offline Reports" button: shows red badge with pending count, retries all failed jobs.
+  - [x] Align offline user credentials to match production DB (IITGN passwords).
+  - [x] Added SMTP env vars to `.env` (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS).
+
+## ⚠️ Action Required Before Email Works
+1. Go to your Google Account → Security → **App Passwords**
+2. Create a new App Password for "Mail" → "Windows Computer"
+3. Copy the 16-character password and update `.env`:
+   ```
+   SMTP_USER=your-actual-gmail@gmail.com
+   SMTP_PASS=xxxx xxxx xxxx xxxx
+   ```
+4. Update `ADMIN_EMAILS` in `app/api/sync/queue/route.ts` with real recipient addresses.
+5. Redeploy to Vercel (env vars must also be set in Vercel dashboard).

@@ -1,4 +1,4 @@
-# Fox Kisen - Industrial Data Acquisition and Energy Audit Platform
+# Fox Kisem - Industrial Data Acquisition and Energy Audit Platform
 
 Production-oriented web platform for machine-wise industrial data capture, energy auditing, OCR extraction, CSV flows, and dashboard analytics.
 

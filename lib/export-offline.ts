@@ -1,15 +1,18 @@
 import * as XLSX from "xlsx";
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { CompanyProfile, ZoneTag, AreaTag, Entry } from "@/lib/store";
 
-export function exportOfflineExcel(
+function buildWorkbook(
   profile: CompanyProfile | null,
   zones: ZoneTag[],
   areas: AreaTag[],
   entries: Entry[]
-) {
+): XLSX.WorkBook {
   const wb = XLSX.utils.book_new();
 
-  // ── Sheet 1: Company Profile ───────────────────────────────────────────
+  // ── Sheet 1: Company Profile ──────────────────────────────────────────
   if (profile) {
     const profileRows = [
       ["Company Name", profile.companyName],
@@ -17,14 +20,13 @@ export function exportOfflineExcel(
       ["District", profile.district],
       ["State", profile.state],
       ["Pincode", profile.pincode],
-      ["Overall Consumption", profile.overallConsumption],
-      ["Last Updated", new Date(profile.updatedAt).toLocaleString()],
+      ["Overall Consumption (kW)", profile.overallConsumption],
+      ["Export Date", new Date().toLocaleString("en-IN")],
     ];
-    const ws1 = XLSX.utils.aoa_to_sheet(profileRows);
-    XLSX.utils.book_append_sheet(wb, ws1, "Company Profile");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(profileRows), "Company Profile");
   }
 
-  // ── Sheet 2: Plant Main Inputs (Zones) ────────────────────────────────
+  // ── Sheet 2: Plant Main Inputs (Zones) ───────────────────────────────
   const zoneHeaders = [
     "Name", "PQ Name", "V1", "V2", "V3",
     "Uhtd1", "Uhtd2", "Uhtd3",
@@ -41,12 +43,11 @@ export function exportOfflineExcel(
     z.ihtd1 ?? "", z.ihtd2 ?? "", z.ihtd3 ?? "",
     z.pf ?? "", z.kvarD ?? "", z.kvarQ ?? "", z.kvarLeadLag ?? "",
     z.totalPower ?? "", z.description ?? "",
-    new Date(z.createdAt).toLocaleString(),
+    new Date(z.createdAt).toLocaleString("en-IN"),
   ]);
-  const ws2 = XLSX.utils.aoa_to_sheet([zoneHeaders, ...zoneRows]);
-  XLSX.utils.book_append_sheet(wb, ws2, "Plant Main Inputs");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([zoneHeaders, ...zoneRows]), "Plant Main Inputs");
 
-  // ── Sheet 3: MCC / PCC (Areas) ────────────────────────────────────────
+  // ── Sheet 3: MCC / PCC (Areas) ───────────────────────────────────────
   const areaHeaders = [
     "Plant Main Input", "MCC/PCC Name", "PQ Name",
     "V1", "V2", "V3",
@@ -65,12 +66,11 @@ export function exportOfflineExcel(
     a.ihtd1 ?? "", a.ihtd2 ?? "", a.ihtd3 ?? "",
     a.pf ?? "", a.kvarD ?? "", a.kvarQ ?? "", a.kvarLeadLag ?? "",
     a.totalPower ?? "", a.description ?? "",
-    new Date(a.createdAt).toLocaleString(),
+    new Date(a.createdAt).toLocaleString("en-IN"),
   ]);
-  const ws3 = XLSX.utils.aoa_to_sheet([areaHeaders, ...areaRows]);
-  XLSX.utils.book_append_sheet(wb, ws3, "MCC-PCC Areas");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([areaHeaders, ...areaRows]), "MCC-PCC Areas");
 
-  // ── Sheet 4: Motor Loads (Entries) ────────────────────────────────────
+  // ── Sheet 4: Motor Loads (Entries) ───────────────────────────────────
   const entryHeaders = [
     "Zone", "Area (MCC/PCC)", "Machine Tag", "Starter Type",
     "Rated kW", "Rated HP", "Voltage (V)", "Current (A)",
@@ -87,19 +87,87 @@ export function exportOfflineExcel(
       e.machineTag, e.starterType,
       e.ratedKw, e.ratedHp ?? "", e.voltage ?? "", e.current ?? "",
       e.kva ?? "", e.pf ?? "", e.kvar ?? "",
-      e.measuredKw, e.calculatedPower.toFixed(2), e.loadFactor.toFixed(3),
+      e.measuredKw,
+      Number(e.calculatedPower).toFixed(2),
+      Number(e.loadFactor).toFixed(3),
       e.description ?? "",
-      new Date(e.createdAt).toLocaleString(),
+      new Date(e.createdAt).toLocaleString("en-IN"),
     ];
   });
-  const ws4 = XLSX.utils.aoa_to_sheet([entryHeaders, ...entryRows]);
-  XLSX.utils.book_append_sheet(wb, ws4, "Motor Loads");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([entryHeaders, ...entryRows]), "Motor Loads");
 
-  // ── Generate filename & download ──────────────────────────────────────
+  return wb;
+}
+
+function getFilename(profile: CompanyProfile | null): string {
   const company = profile?.companyName?.replace(/\s+/g, "_") ?? "export";
-  const today   = new Date();
-  const ddmm    = `${String(today.getDate()).padStart(2, "0")}${String(today.getMonth() + 1).padStart(2, "0")}`;
-  const filename = `${company}_${ddmm}.xlsx`;
+  const today = new Date();
+  const ddmm = `${String(today.getDate()).padStart(2, "0")}${String(today.getMonth() + 1).padStart(2, "0")}`;
+  return `${company}_${ddmm}.xlsx`;
+}
 
-  XLSX.writeFile(wb, filename);
+/**
+ * Download Excel using Native Share sheet (Android) or Blob URL (Web browser).
+ */
+export async function exportOfflineExcel(
+  profile: CompanyProfile | null,
+  zones: ZoneTag[],
+  areas: AreaTag[],
+  entries: Entry[]
+): Promise<void> {
+  const wb = buildWorkbook(profile, zones, areas, entries);
+  const filename = getFilename(profile);
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      // Write as base64 to the device Cache directory
+      const base64 = XLSX.write(wb, { bookType: "xlsx", type: "base64" });
+      const result = await Filesystem.writeFile({
+        path: filename,
+        data: base64,
+        directory: Directory.Cache,
+      });
+
+      // Open the Android native Share sheet — user can save to Drive, email it, etc.
+      await Share.share({
+        title: "Fox Kisem — Exported Report",
+        text: `Excel Report for ${profile?.companyName ?? "Company"}`,
+        url: result.uri,
+        dialogTitle: "Save or Share Report",
+      });
+    } catch (err) {
+      console.error("Native export failed", err);
+      alert("Export failed: " + JSON.stringify(err));
+    }
+  } else {
+    // Fallback for standard web browser
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 200);
+  }
+}
+
+/**
+ * Return the workbook as a base64 string (useful for attaching to emails client-side).
+ */
+export function buildExcelBase64(
+  profile: CompanyProfile | null,
+  zones: ZoneTag[],
+  areas: AreaTag[],
+  entries: Entry[]
+): { base64: string; filename: string } {
+  const wb = buildWorkbook(profile, zones, areas, entries);
+  const base64 = XLSX.write(wb, { bookType: "xlsx", type: "base64" });
+  return { base64, filename: getFilename(profile) };
 }

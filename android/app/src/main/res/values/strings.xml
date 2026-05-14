@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Fox Kisen</string>
-    <string name="title_activity_main">Fox Kisen</string>
-    <string name="package_name">com.kisem.foxkisen</string>
-    <string name="custom_url_scheme">com.kisem.foxkisen</string>
+    <string name="app_name">Fox Kisem</string>
+    <string name="title_activity_main">Fox Kisem</string>
+    <string name="package_name">com.kisem.foxkisem</string>
+    <string name="custom_url_scheme">com.kisem.foxkisem</string>
 </resources>

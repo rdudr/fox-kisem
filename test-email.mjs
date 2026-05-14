@@ -10,7 +10,7 @@ const ADMIN_EMAILS = [
   "rishabh.dangi@iitgn.ac.in",
   "dhruvit.patel@iitgn.ac.in",
   "rahuljayantibhai.p@iitgn.ac.in",
-  "eas@iitgn.ac.in"
+  "iea@iitgn.ac.in"
 ];
 
 const transporter = nodemailer.createTransport({

@@ -4,7 +4,7 @@
 
 ### ✅ Completed Updates
 1. **Branding**: Rebranded entire application from "Kisen" to "Kisem"
-2. **Email Recipients**: Added `eas@iitgn.ac.in` to admin recipients list
+2. **Email Recipients**: Added `iea@iitgn.ac.in` to admin recipients list
 3. **Email Logic**: Updated send-report and sync/queue API routes with new recipient
 4. **Android Package**: Migrated to `com.kisem.foxkisem` structure
 5. **Production Build**: Successfully compiled with Next.js Turbopack
@@ -18,7 +18,7 @@
 - rishabh.dangi@iitgn.ac.in
 - dhruvit.patel@iitgn.ac.in
 - rahuljayantibhai.p@iitgn.ac.in
-- eas@iitgn.ac.in ✨
+- iea@iitgn.ac.in ✨
 
 **Email Signature:**
 ```

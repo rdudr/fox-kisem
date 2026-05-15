@@ -196,10 +196,13 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
   };
 
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const authLogout = useAuthStore((s) => s.logout);
+
   const handleLogoutAction = async () => {
     try { await fetch("/api/auth/logout", { method: "POST" }); } catch {}
     // Clear the active form data so next login starts fresh
     wipeData();
+    authLogout();
     router.push("/login");
   };
 

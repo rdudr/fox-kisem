@@ -1,7 +1,6 @@
 export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import nodemailer from "nodemailer";
 import { buildExcelBase64 } from "@/lib/export-offline";
 
 // ── Hardcoded Admins ──────────────────────────────────────────────────
@@ -140,34 +139,28 @@ Best regards,
 Fox Kisem — Industrial Data Collection System
 IITGN Kisem Lab`;
 
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST ?? "smtp.gmail.com",
-        port: Number(process.env.SMTP_PORT ?? 587),
-        secure: false,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
+      const { Resend } = await import("resend");
+      const resend = new Resend(process.env.RESEND_API_KEY);
 
-      const mainRecipient = ADMIN_EMAILS[0];
-      const ccRecipients = ADMIN_EMAILS.slice(1);
-
-      await transporter.sendMail({
-        from: `"Fox Kisem" <${process.env.SMTP_USER}>`,
-        to: process.env.SMTP_USER, // Send to self
-        bcc: ADMIN_EMAILS.join(", "), // BCC all admins to guarantee simultaneous delivery
+      const emailResponse = await resend.emails.send({
+        from: "Fox Kisem <onboarding@resend.dev>", // Default test domain, change if verified
+        to: ADMIN_EMAILS[0], // Main recipient
+        bcc: ADMIN_EMAILS.slice(1), // BCC all other admins
         subject: `Motor Load Report — ${company} (${ddmm})`,
         text: emailBody,
         attachments: [
           {
             filename,
             content: xlsxBuffer,
-            contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           },
         ],
       });
-      console.log("[SYNC] Email successfully dispatched via BCC to all admins.");
+
+      if (emailResponse.error) {
+        throw new Error(emailResponse.error.message);
+      }
+      
+      console.log("[SYNC] Email successfully dispatched via Resend to all admins.");
     }
 
     return NextResponse.json({ ok: true, synced: { jobId } });

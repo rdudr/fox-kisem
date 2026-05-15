@@ -210,7 +210,7 @@ export const useAppStore = create<AppState>()(
         apfcs: (state.apfcs || []).filter(a => a.id !== id)
       })),
 
-      wipeData: () => set({ profile: null, zones: [], areas: [], entries: [], apfcs: [] }),
+      wipeData: () => set({ profile: null, zones: [], areas: [], entries: [], apfcs: [], syncQueue: [] }),
 
       addJobToQueue: (job) => set((state) => {
         // Hard cap at 50 to prevent IndexedDB bloat

@@ -87,9 +87,9 @@ export function ConsoleShell({
                   {isOnline ? "Online" : "Offline"}
                 </span>
               </div>
-              <p className="text-sm font-semibold text-slate-50">{user?.displayName ?? user?.name ?? user?.email ?? "User"}</p>
+              <p className="text-sm font-semibold text-slate-50">{user?.displayName ?? user?.name ?? user?.username ?? user?.email ?? "User"}</p>
               <p className="text-xs text-slate-500">
-                {user?.username ?? user?.email ?? user?.id} · <span className={cn(user?.role === "Offline" || !isOnline ? "text-amber-300" : "text-cyan-300/90")}>{user?.role || (isOnline ? "Server" : "Offline")}</span>
+                {user?.username ?? user?.email ?? user?.id}
               </p>
               {!isOnline && (
                 <p className="text-xs text-amber-300/80 mt-1">⚠ Working offline - changes will sync when online</p>

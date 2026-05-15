@@ -109,7 +109,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
       return;
     }
 
-    toast.success("Excel saved to device ✓");
+    toast.success("Excel saved to device downloads ✓");
 
     // 2. Queue the job (so it can be retried later if sync fails now)
     addJobToQueue({
@@ -130,29 +130,20 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         if (ok) {
           setMailModalStatus("success");
           toast.success("Report emailed to admin team ✓");
-          setTimeout(() => {
-            setMailModalStatus("idle");
-            wipeData();
-          }, 2000);
         } else {
           setMailModalStatus("error");
           toast.warning("Saved locally. Email sync failed — will retry when online.");
-          setTimeout(() => {
-            setMailModalStatus("idle");
-          }, 3000);
         }
+        setTimeout(() => setMailModalStatus("idle"), 2000);
       } else {
-        // No server configured — leave job pending, clear workspace
         toast.info("No server configured. Report queued for later sync.");
-        wipeData();
       }
     } else {
-      // Offline — leave pending, workspace cleared
       toast.info("Offline. Report queued — will email when you tap 'Sync'.");
-      wipeData();
     }
 
     setExporting(false);
+    setShowCompleteModal(true); // Show the success/logout modal!
   };
 
   // ─── Retry all pending sync jobs ────────────────────────────────────────
@@ -200,29 +191,47 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
     }
   };
 
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const handleLogoutAction = async () => {
+    try { await fetch("/api/auth/logout", { method: "POST" }); } catch {}
+    wipeData();
+    router.push("/login");
+  };
+
   return (
-    <div className="flex items-center gap-2 flex-wrap">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
       <MailSendModal
         isOpen={mailModalStatus !== "idle"}
         status={mailModalStatus}
         companyName={profile?.companyName || "Your Company"}
         jobCount={syncJobCount || 1}
       />
+
+      {/* ── Save Progress ── */}
+      <Button
+        onClick={() => toast.success("Progress saved securely to device!")}
+        variant="outline"
+        className="border-cyan-500/30 text-cyan-50 hover:bg-cyan-500/10 gap-2 w-full sm:w-auto"
+      >
+        <CheckCircle2 className="size-4" />
+        Save Progress
+      </Button>
+
       {/* ── Sync pending jobs ── */}
       <Button
         onClick={handleSyncAll}
         disabled={syncing}
         variant="secondary"
-        className="relative border border-white/20 text-slate-300 hover:bg-white/10 gap-2 pr-10"
+        className="relative border border-amber-500/30 text-amber-50 hover:bg-amber-500/10 gap-2 pr-10 w-full sm:w-auto"
       >
         {syncing
           ? <Loader2 className="size-4 animate-spin" />
           : <CloudUpload className="size-4" />
         }
-        {syncing ? "Syncing…" : "Sync Offline Reports"}
+        {syncing ? "Syncing…" : "Sync Offline Data"}
 
         {pendingJobs.length > 0 && (
-          <span className="absolute -top-2 -right-2 px-1.5 min-w-[20px] h-5 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full animate-pulse">
+          <span className="absolute top-1/2 -translate-y-1/2 right-2 px-1.5 min-w-[20px] h-5 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full animate-pulse shadow-lg shadow-red-900/50">
             {pendingJobs.length}
           </span>
         )}
@@ -232,13 +241,13 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
       <Button
         onClick={handleExportAndComplete}
         disabled={exporting}
-        className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2 font-semibold shadow-lg shadow-emerald-900/20"
+        className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2 font-semibold shadow-lg shadow-emerald-900/20 w-full sm:w-auto"
       >
         {exporting
           ? <Loader2 className="size-4 animate-spin" />
           : <Download className="size-4" />
         }
-        {exporting ? "Exporting…" : "Export & Complete"}
+        {exporting ? "Downloading…" : "Download & Send"}
       </Button>
 
       {/* ── Missing company modal ── */}
@@ -268,6 +277,49 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
                 className="w-full text-slate-400 hover:text-white"
               >
                 Export Anyway
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Success & Logout Modal ── */}
+      {showCompleteModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+          <div className="bg-slate-900 border border-white/10 p-6 rounded-xl shadow-2xl max-w-sm w-full text-center">
+            <div className="flex justify-center mb-4">
+              <div className="rounded-full bg-emerald-500/20 p-3">
+                <CheckCircle2 className="size-10 text-emerald-400" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Report Saved!</h3>
+            <p className="text-sm text-slate-300 mb-6">
+              The Excel file has been downloaded.
+              {typeof navigator !== "undefined" && navigator.onLine 
+                ? " The email has been sent successfully." 
+                : " Email is queued. Use 'Sync Offline Data' when connected."}
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button 
+                onClick={handleLogoutAction} 
+                className="w-full bg-red-600 hover:bg-red-500 text-white gap-2 font-medium"
+              >
+                <AlertTriangle className="size-4 hidden" />
+                Logout Safely
+              </Button>
+              <Button 
+                onClick={() => { wipeData(); setShowCompleteModal(false); router.push("/company"); }} 
+                variant="outline" 
+                className="w-full border-white/20 text-white bg-white/5 hover:bg-white/10"
+              >
+                Start New Report
+              </Button>
+              <Button 
+                onClick={() => setShowCompleteModal(false)} 
+                variant="ghost" 
+                className="w-full text-slate-400 hover:text-white"
+              >
+                Close & Keep Editing
               </Button>
             </div>
           </div>

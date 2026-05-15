@@ -33,17 +33,18 @@ export type ZoneTag = {
   v1?: number | null;
   v2?: number | null;
   v3?: number | null;
-  uhtd1?: number | null;
-  uhtd2?: number | null;
-  uhtd3?: number | null;
+  uthd1?: number | null;
+  uthd2?: number | null;
+  uthd3?: number | null;
   i1?: number | null;
   i2?: number | null;
   i3?: number | null;
-  ihtd1?: number | null;
-  ihtd2?: number | null;
-  ihtd3?: number | null;
+  ithd1?: number | null;
+  ithd2?: number | null;
+  ithd3?: number | null;
   pf?: number | null;
   pqName?: string | null;
+  recordingNameId?: string | null;
   description?: string | null;
   kvarD?: number | null;
   kvarQ?: number | null;
@@ -60,16 +61,17 @@ export type AreaTag = {
   v1?: number | null;
   v2?: number | null;
   v3?: number | null;
-  uhtd1?: number | null;
-  uhtd2?: number | null;
-  uhtd3?: number | null;
+  uthd1?: number | null;
+  uthd2?: number | null;
+  uthd3?: number | null;
   i1?: number | null;
   i2?: number | null;
   i3?: number | null;
-  ihtd1?: number | null;
-  ihtd2?: number | null;
-  ihtd3?: number | null;
+  ithd1?: number | null;
+  ithd2?: number | null;
+  ithd3?: number | null;
   pf?: number | null;
+  recordingNameId?: string | null;
   kvarD?: number | null;
   kvarQ?: number | null;
   kvarLeadLag?: string | null;
@@ -83,6 +85,7 @@ export type Entry = {
   areaId: string;
   machineTag: string;
   starterType: StarterType;
+  vfdFrequency?: number | null;
   ratedKw: number;
   ratedHp?: number | null;
   voltage?: number | null;
@@ -98,6 +101,19 @@ export type Entry = {
   createdById: string;
 };
 
+export type ApfcTag = {
+  id: string;
+  stage?: number | null;
+  ratedCapacitorValue?: number | null;
+  voltage?: number | null;
+  iR?: number | null;
+  iY?: number | null;
+  iB?: number | null;
+  remark?: string | null;
+  description?: string | null;
+  createdAt: string;
+};
+
 export type SyncJob = {
   jobId: string;
   status: 'pending' | 'synced';
@@ -108,6 +124,7 @@ export type SyncJob = {
     zones: ZoneTag[];
     areas: AreaTag[];
     entries: Entry[];
+    apfcs?: ApfcTag[];
   };
 };
 
@@ -116,6 +133,7 @@ type AppState = {
   zones: ZoneTag[];
   areas: AreaTag[];
   entries: Entry[];
+  apfcs: ApfcTag[];
   syncQueue: SyncJob[];
   
   setProfile: (profile: CompanyProfile) => void;
@@ -128,7 +146,12 @@ type AppState = {
   deleteArea: (id: string) => void;
   
   addEntry: (entry: Entry) => void;
+  updateEntry: (id: string, entry: Partial<Entry>) => void;
   deleteEntry: (id: string) => void;
+  
+  addApfc: (apfc: ApfcTag) => void;
+  updateApfc: (id: string, apfc: Partial<ApfcTag>) => void;
+  deleteApfc: (id: string) => void;
   
   wipeData: () => void;
 
@@ -144,6 +167,7 @@ export const useAppStore = create<AppState>()(
       zones: [],
       areas: [],
       entries: [],
+      apfcs: [],
       syncQueue: [],
 
       setProfile: (profile) => set({ profile }),
@@ -171,11 +195,22 @@ export const useAppStore = create<AppState>()(
       })),
 
       addEntry: (entry) => set((state) => ({ entries: [...state.entries, entry] })),
+      updateEntry: (id, updatedEntry) => set((state) => ({
+        entries: state.entries.map(e => e.id === id ? { ...e, ...updatedEntry } : e)
+      })),
       deleteEntry: (id) => set((state) => ({
         entries: state.entries.filter(e => e.id !== id)
       })),
 
-      wipeData: () => set({ profile: null, zones: [], areas: [], entries: [] }),
+      addApfc: (apfc) => set((state) => ({ apfcs: [...(state.apfcs || []), apfc] })),
+      updateApfc: (id, updatedApfc) => set((state) => ({
+        apfcs: (state.apfcs || []).map(a => a.id === id ? { ...a, ...updatedApfc } : a)
+      })),
+      deleteApfc: (id) => set((state) => ({
+        apfcs: (state.apfcs || []).filter(a => a.id !== id)
+      })),
+
+      wipeData: () => set({ profile: null, zones: [], areas: [], entries: [], apfcs: [] }),
 
       addJobToQueue: (job) => set((state) => {
         // Hard cap at 50 to prevent IndexedDB bloat

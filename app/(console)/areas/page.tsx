@@ -13,13 +13,16 @@ export default function MccPccPage() {
   
   const [form, setForm] = useState({
     zoneId: "", name: "",
+    pqName: "", recordingNameId: "",
     v1: "", v2: "", v3: "",
-    uhtd1: "", uhtd2: "", uhtd3: "",
+    uthd1: "", uthd2: "", uthd3: "",
     i1: "", i2: "", i3: "",
-    ihtd1: "", ihtd2: "", ihtd3: "",
+    ithd1: "", ithd2: "", ithd3: "",
     pf: "", kvarD: "", kvarQ: "", kvarLeadLag: "Lead",
-    pqName: "", description: ""
+    description: ""
   });
+  
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   const [totalPower, setTotalPower] = useState(0);
 
@@ -28,6 +31,7 @@ export default function MccPccPage() {
   const zones = useAppStore((state) => state.zones);
   const areas = useAppStore((state) => state.areas);
   const addAreaAction = useAppStore((state) => state.addArea);
+  const updateAreaAction = useAppStore((state) => state.updateArea);
 
   useEffect(() => {
     if (!form.zoneId && zones.length > 0) {
@@ -73,64 +77,107 @@ export default function MccPccPage() {
       v1: form.v1 ? Number(form.v1) : undefined,
       v2: form.v2 ? Number(form.v2) : undefined,
       v3: form.v3 ? Number(form.v3) : undefined,
-      uhtd1: form.uhtd1 ? Number(form.uhtd1) : undefined,
-      uhtd2: form.uhtd2 ? Number(form.uhtd2) : undefined,
-      uhtd3: form.uhtd3 ? Number(form.uhtd3) : undefined,
+      uthd1: form.uthd1 ? Number(form.uthd1) : undefined,
+      uthd2: form.uthd2 ? Number(form.uthd2) : undefined,
+      uthd3: form.uthd3 ? Number(form.uthd3) : undefined,
       i1: form.i1 ? Number(form.i1) : undefined,
       i2: form.i2 ? Number(form.i2) : undefined,
       i3: form.i3 ? Number(form.i3) : undefined,
-      ihtd1: form.ihtd1 ? Number(form.ihtd1) : undefined,
-      ihtd2: form.ihtd2 ? Number(form.ihtd2) : undefined,
-      ihtd3: form.ihtd3 ? Number(form.ihtd3) : undefined,
+      ithd1: form.ithd1 ? Number(form.ithd1) : undefined,
+      ithd2: form.ithd2 ? Number(form.ithd2) : undefined,
+      ithd3: form.ithd3 ? Number(form.ithd3) : undefined,
       pf: form.pf ? Number(form.pf) : undefined,
       kvarD: form.kvarD ? Number(form.kvarD) : undefined,
       kvarQ: form.kvarQ ? Number(form.kvarQ) : undefined,
       kvarLeadLag: form.kvarLeadLag,
       totalPower: totalPower,
       pqName: form.pqName || undefined,
+      recordingNameId: form.recordingNameId || undefined,
       description: form.description || undefined,
       createdAt: new Date().toISOString(),
     };
     
-    addAreaAction(payload);
+    if (editingId) {
+      updateAreaAction(editingId, payload);
+      toast.success("MCC/PCC updated locally");
+    } else {
+      addAreaAction(payload);
+      toast.success("MCC/PCC added locally");
+    }
+    
+    setEditingId(null);
     
     setForm(prev => ({
       ...prev,
       name: "",
+      pqName: "", recordingNameId: "",
       v1: "", v2: "", v3: "",
-      uhtd1: "", uhtd2: "", uhtd3: "",
+      uthd1: "", uthd2: "", uthd3: "",
       i1: "", i2: "", i3: "",
-      ihtd1: "", ihtd2: "", ihtd3: "",
+      ithd1: "", ithd2: "", ithd3: "",
       pf: "", kvarD: "", kvarQ: "", kvarLeadLag: "Lead",
-      pqName: "", description: ""
+      description: ""
     }));
     setTotalPower(0);
-    toast.success("MCC/PCC added locally");
+  }
+
+  function handleEdit(a: any) {
+    setEditingId(a.id);
+    setForm({
+      zoneId: a.zoneId || "",
+      name: a.name || "",
+      pqName: a.pqName || "",
+      recordingNameId: a.recordingNameId || "",
+      v1: a.v1?.toString() || "", v2: a.v2?.toString() || "", v3: a.v3?.toString() || "",
+      uthd1: a.uthd1?.toString() || "", uthd2: a.uthd2?.toString() || "", uthd3: a.uthd3?.toString() || "",
+      i1: a.i1?.toString() || "", i2: a.i2?.toString() || "", i3: a.i3?.toString() || "",
+      ithd1: a.ithd1?.toString() || "", ithd2: a.ithd2?.toString() || "", ithd3: a.ithd3?.toString() || "",
+      pf: a.pf?.toString() || "",
+      kvarD: a.kvarD?.toString() || "", kvarQ: a.kvarQ?.toString() || "", kvarLeadLag: a.kvarLeadLag || "Lead",
+      description: a.description || ""
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleCancel() {
+    setEditingId(null);
+    setForm(prev => ({
+      ...prev,
+      name: "",
+      pqName: "", recordingNameId: "",
+      v1: "", v2: "", v3: "",
+      uthd1: "", uthd2: "", uthd3: "",
+      i1: "", i2: "", i3: "",
+      ithd1: "", ithd2: "", ithd3: "",
+      pf: "", kvarD: "", kvarQ: "", kvarLeadLag: "Lead",
+      description: ""
+    }));
   }
 
   return (
     <div className="space-y-4">
       <Card><CardHeader><CardTitle>Add MCC/PCC</CardTitle></CardHeader><CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-4">
           <div><Label>Plant Main Input</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={form.zoneId} onChange={(e) => setForm({...form, zoneId: e.target.value})}>{zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}</select></div>
           <div><Label>MCC/PCC Name</Label><Input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} /></div>
           <div><Label>PQ NAME</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={form.pqName} onChange={(e) => setForm({...form, pqName: e.target.value})}><option value="">Select...</option><option value="Hioki">Hioki</option><option value="ALM36">ALM36</option><option value="ALM31">ALM31</option><option value="ALM45">ALM45</option></select></div>
+          <div><Label>Recording Name ID</Label><Input value={form.recordingNameId} onChange={(e) => setForm({...form, recordingNameId: e.target.value})} /></div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6 pt-2 border-t border-white/5">
           <div><Label>V1</Label><Input type="number" value={form.v1} onChange={(e) => setForm({...form, v1: e.target.value})} /></div>
           <div><Label>V2</Label><Input type="number" value={form.v2} onChange={(e) => setForm({...form, v2: e.target.value})} /></div>
           <div><Label>V3</Label><Input type="number" value={form.v3} onChange={(e) => setForm({...form, v3: e.target.value})} /></div>
-          <div><Label>Uhtd1</Label><Input type="number" value={form.uhtd1} onChange={(e) => setForm({...form, uhtd1: e.target.value})} /></div>
-          <div><Label>Uhtd2</Label><Input type="number" value={form.uhtd2} onChange={(e) => setForm({...form, uhtd2: e.target.value})} /></div>
-          <div><Label>Uhtd3</Label><Input type="number" value={form.uhtd3} onChange={(e) => setForm({...form, uhtd3: e.target.value})} /></div>
+          <div><Label>Uthd1</Label><Input type="number" value={form.uthd1} onChange={(e) => setForm({...form, uthd1: e.target.value})} /></div>
+          <div><Label>Uthd2</Label><Input type="number" value={form.uthd2} onChange={(e) => setForm({...form, uthd2: e.target.value})} /></div>
+          <div><Label>Uthd3</Label><Input type="number" value={form.uthd3} onChange={(e) => setForm({...form, uthd3: e.target.value})} /></div>
           
           <div><Label>I1</Label><Input type="number" value={form.i1} onChange={(e) => setForm({...form, i1: e.target.value})} /></div>
           <div><Label>I2</Label><Input type="number" value={form.i2} onChange={(e) => setForm({...form, i2: e.target.value})} /></div>
           <div><Label>I3</Label><Input type="number" value={form.i3} onChange={(e) => setForm({...form, i3: e.target.value})} /></div>
-          <div><Label>Ihtd1</Label><Input type="number" value={form.ihtd1} onChange={(e) => setForm({...form, ihtd1: e.target.value})} /></div>
-          <div><Label>Ihtd2</Label><Input type="number" value={form.ihtd2} onChange={(e) => setForm({...form, ihtd2: e.target.value})} /></div>
-          <div><Label>Ihtd3</Label><Input type="number" value={form.ihtd3} onChange={(e) => setForm({...form, ihtd3: e.target.value})} /></div>
+          <div><Label>Ithd1</Label><Input type="number" value={form.ithd1} onChange={(e) => setForm({...form, ithd1: e.target.value})} /></div>
+          <div><Label>Ithd2</Label><Input type="number" value={form.ithd2} onChange={(e) => setForm({...form, ithd2: e.target.value})} /></div>
+          <div><Label>Ithd3</Label><Input type="number" value={form.ithd3} onChange={(e) => setForm({...form, ithd3: e.target.value})} /></div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5 pt-2 border-t border-white/5">
@@ -157,7 +204,10 @@ export default function MccPccPage() {
           <Textarea className="h-20" placeholder="Add additional info..." value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} />
         </div>
 
-        <div className="flex items-end gap-2 pt-2"><Button onClick={() => void addMccPcc()}>Add Entry</Button></div>
+        <div className="flex items-end gap-2 pt-2">
+          <Button onClick={() => void addMccPcc()}>{editingId ? "Update Entry" : "Add Entry"}</Button>
+          {editingId && <Button variant="secondary" onClick={handleCancel}>Cancel</Button>}
+        </div>
       </CardContent></Card>
 
       <Card><CardHeader><CardTitle>MCC/PCC recorded</CardTitle></CardHeader><CardContent>
@@ -175,13 +225,17 @@ export default function MccPccPage() {
                 <tr className="bg-slate-900/50"><td colSpan={5} className="px-4 py-3">
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-slate-300">
                     <div><span className="block text-[10px] uppercase text-slate-500">V1 / V2 / V3</span>{(a as any).v1 ?? "-"}{(a as any).v2 !== undefined ? ` / ${(a as any).v2}` : ""}{(a as any).v3 !== undefined ? ` / ${(a as any).v3}` : ""}</div>
-                    <div><span className="block text-[10px] uppercase text-slate-500">Uhtd 1 / 2 / 3</span>{(a as any).uhtd1 ?? "-"}{(a as any).uhtd2 !== undefined ? ` / ${(a as any).uhtd2}` : ""}{(a as any).uhtd3 !== undefined ? ` / ${(a as any).uhtd3}` : ""}</div>
+                    <div><span className="block text-[10px] uppercase text-slate-500">Uthd 1 / 2 / 3</span>{(a as any).uthd1 ?? "-"}{(a as any).uthd2 !== undefined ? ` / ${(a as any).uthd2}` : ""}{(a as any).uthd3 !== undefined ? ` / ${(a as any).uthd3}` : ""}</div>
                     <div><span className="block text-[10px] uppercase text-slate-500">I1 / I2 / I3</span>{(a as any).i1 ?? "-"}{(a as any).i2 !== undefined ? ` / ${(a as any).i2}` : ""}{(a as any).i3 !== undefined ? ` / ${(a as any).i3}` : ""}</div>
-                    <div><span className="block text-[10px] uppercase text-slate-500">Ihtd 1 / 2 / 3</span>{(a as any).ihtd1 ?? "-"}{(a as any).ihtd2 !== undefined ? ` / ${(a as any).ihtd2}` : ""}{(a as any).ihtd3 !== undefined ? ` / ${(a as any).ihtd3}` : ""}</div>
+                    <div><span className="block text-[10px] uppercase text-slate-500">Ithd 1 / 2 / 3</span>{(a as any).ithd1 ?? "-"}{(a as any).ithd2 !== undefined ? ` / ${(a as any).ithd2}` : ""}{(a as any).ithd3 !== undefined ? ` / ${(a as any).ithd3}` : ""}</div>
                     <div><span className="block text-[10px] uppercase text-slate-500">Power Factor</span>{(a as any).pf ?? "-"}</div>
                     <div><span className="block text-[10px] uppercase text-slate-500">KVAr (D) / KVAr (Q)</span>{(a as any).kvarD ?? "-"} / {(a as any).kvarQ ?? "-"}</div>
                     <div><span className="block text-[10px] uppercase text-slate-500">KVAr Lead/Lag</span>{(a as any).kvarLeadLag ?? "-"}</div>
+                    <div><span className="block text-[10px] uppercase text-slate-500">Recording Name ID</span>{(a as any).recordingNameId || "N/A"}</div>
                     <div className="col-span-2"><span className="block text-[10px] uppercase text-slate-500">Description</span>{a.description || "N/A"}</div>
+                    <div className="col-span-full pt-2 flex justify-end">
+                      <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(a); }}>Edit</Button>
+                    </div>
                   </div>
                 </td></tr>
               )}

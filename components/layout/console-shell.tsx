@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { cn } from "@/lib/utils";
 import { Building2, FileSpreadsheet, LayoutDashboard, MapPinned } from "lucide-react";
@@ -13,6 +13,7 @@ const nav = [
   { href: "/zones", label: "Plant Main Input", icon: MapPinned },
   { href: "/areas", label: "MCC/PCC", icon: MapPinned },
   { href: "/machines", label: "Motor Load", icon: FileSpreadsheet },
+  { href: "/apfc", label: "APFC", icon: FileSpreadsheet },
 ];
 
 export function ConsoleShell({
@@ -23,6 +24,7 @@ export function ConsoleShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "/dashboard";
+  const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
@@ -98,7 +100,7 @@ export function ConsoleShell({
                   className="h-9 rounded-md border border-white/10 bg-slate-950/60 px-2 text-xs text-slate-100"
                   value={pathname}
                   onChange={(e) => {
-                    window.location.href = e.target.value;
+                    router.push(e.target.value);
                   }}
                 >
                   {nav.map((n) => (

@@ -35,15 +35,15 @@ export async function GET() {
 
   // --- SHEET 1: Plant Main Input ---
   const zoneHeaders = [
-    "Name", "PQ Name", 
-    "V1", "V2", "V3", "Uhtd1", "Uhtd2", "Uhtd3", 
-    "I1", "I2", "I3", "Ihtd1", "Ihtd2", "Ihtd3", 
+    "Name", "PQ Name", "Recording ID",
+    "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3", 
+    "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3", 
     "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Time"
   ];
   const zoneDataRows = zones.map(z => [
-    z.name, z.pqName || "",
-    f2(z.v1), f2(z.v2), f2(z.v3), f2(z.uhtd1), f2(z.uhtd2), f2(z.uhtd3),
-    f2(z.i1), f2(z.i2), f2(z.i3), f2(z.ihtd1), f2(z.ihtd2), f2(z.ihtd3),
+    z.name, z.pqName || "", z.recordingNameId || "",
+    f2(z.v1), f2(z.v2), f2(z.v3), f2(z.uthd1), f2(z.uthd2), f2(z.uthd3),
+    f2(z.i1), f2(z.i2), f2(z.i3), f2(z.ithd1), f2(z.ithd2), f2(z.ithd3),
     f3(z.pf), f2(z.kvarD), f2(z.kvarQ), z.kvarLeadLag || "", f2(z.totalPower), z.description || "",
     new Date(z.createdAt).toLocaleString()
   ]);
@@ -51,15 +51,15 @@ export async function GET() {
 
   // --- SHEET 2: MCC/PCC ---
   const areaHeaders = [
-    "Plant Main Input", "MCC/PCC Name", "PQ Name", 
-    "V1", "V2", "V3", "Uhtd1", "Uhtd2", "Uhtd3", 
-    "I1", "I2", "I3", "Ihtd1", "Ihtd2", "Ihtd3", 
+    "Plant Main Input", "MCC/PCC Name", "PQ Name", "Recording ID",
+    "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3", 
+    "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3", 
     "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Time"
   ];
   const areaDataRows = areas.map(a => [
-    a.zone?.name || "", a.name, a.pqName || "",
-    f2(a.v1), f2(a.v2), f2(a.v3), f2(a.uhtd1), f2(a.uhtd2), f2(a.uhtd3),
-    f2(a.i1), f2(a.i2), f2(a.i3), f2(a.ihtd1), f2(a.ihtd2), f2(a.ihtd3),
+    a.zone?.name || "", a.name, a.pqName || "", a.recordingNameId || "",
+    f2(a.v1), f2(a.v2), f2(a.v3), f2(a.uthd1), f2(a.uthd2), f2(a.uthd3),
+    f2(a.i1), f2(a.i2), f2(a.i3), f2(a.ithd1), f2(a.ithd2), f2(a.ithd3),
     f3(a.pf), f2(a.kvarD), f2(a.kvarQ), a.kvarLeadLag || "", f2(a.totalPower), a.description || "",
     new Date(a.createdAt).toLocaleString()
   ]);

@@ -1,8 +1,8 @@
-export const dynamic = 'force-static'
+export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
-import * as XLSX from "xlsx";
+import { buildExcelBase64 } from "@/lib/export-offline";
 
 // ── Hardcoded Admins ──────────────────────────────────────────────────
 // Put your emails here. These are the people who will receive the
@@ -19,7 +19,7 @@ const ADMIN_EMAILS = [
 
 export async function POST(req: Request) {
   try {
-    const { jobId, reporterName, profile, zones, areas, entries } = await req.json();
+    const { jobId, reporterName, profile, zones, areas, entries, apfcs } = await req.json();
 
     // 1. Save data to Database (same as regular sync)
     if (profile) {
@@ -48,16 +48,16 @@ export async function POST(req: Request) {
     for (const z of (zones ?? [])) {
       await prisma.zoneTag.upsert({
         where: { id: z.id },
-        create: { id: z.id, name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag },
-        update: { name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag },
+        create: { id: z.id, name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, recordingNameId: z.recordingNameId, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, uthd1: z.uthd1, uthd2: z.uthd2, uthd3: z.uthd3, ithd1: z.ithd1, ithd2: z.ithd2, ithd3: z.ithd3, i1: z.i1, i2: z.i2, i3: z.i3 },
+        update: { name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, recordingNameId: z.recordingNameId, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, uthd1: z.uthd1, uthd2: z.uthd2, uthd3: z.uthd3, ithd1: z.ithd1, ithd2: z.ithd2, ithd3: z.ithd3, i1: z.i1, i2: z.i2, i3: z.i3 },
       });
     }
 
     for (const a of (areas ?? [])) {
       await prisma.areaTag.upsert({
         where: { id: a.id },
-        create: { id: a.id, zoneId: a.zoneId, name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag },
-        update: { name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag },
+        create: { id: a.id, zoneId: a.zoneId, name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, recordingNameId: a.recordingNameId, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, uthd1: a.uthd1, uthd2: a.uthd2, uthd3: a.uthd3, ithd1: a.ithd1, ithd2: a.ithd2, ithd3: a.ithd3, i1: a.i1, i2: a.i2, i3: a.i3 },
+        update: { name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, recordingNameId: a.recordingNameId, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, uthd1: a.uthd1, uthd2: a.uthd2, uthd3: a.uthd3, ithd1: a.ithd1, ithd2: a.ithd2, ithd3: a.ithd3, i1: a.i1, i2: a.i2, i3: a.i3 },
       });
     }
 
@@ -81,6 +81,7 @@ export async function POST(req: Request) {
           areaId: e.areaId,
           machineTag: e.machineTag,
           starterType: e.starterType,
+          vfdFrequency: e.vfdFrequency,
           ratedKw: e.ratedKw,
           ratedHp: e.ratedHp,
           voltage: e.voltage,
@@ -97,6 +98,7 @@ export async function POST(req: Request) {
         update: {
           machineTag: e.machineTag,
           starterType: e.starterType,
+          vfdFrequency: e.vfdFrequency,
           ratedKw: e.ratedKw,
           measuredKw: e.measuredKw,
           calculatedPower: e.calculatedPower,
@@ -105,44 +107,20 @@ export async function POST(req: Request) {
       });
     }
 
+    for (const a of (apfcs ?? [])) {
+      await prisma.apfcTag.upsert({
+        where: { id: a.id },
+        create: { id: a.id, stage: a.stage, ratedCapacitorValue: a.ratedCapacitorValue, voltage: a.voltage, iR: a.iR, iY: a.iY, iB: a.iB, remark: a.remark, description: a.description },
+        update: { stage: a.stage, ratedCapacitorValue: a.ratedCapacitorValue, voltage: a.voltage, iR: a.iR, iY: a.iY, iB: a.iB, remark: a.remark, description: a.description },
+      });
+    }
+
     // 2. Generate Excel & Send Email if Profile exists
     if (profile) {
-      const wb = XLSX.utils.book_new();
-
-      const profileRows = [
-        ["Company Name", profile.companyName],
-        ["Area / Zone", profile.area],
-        ["District", profile.district],
-        ["State", profile.state],
-        ["Pincode", profile.pincode],
-        ["Overall Consumption (kW)", profile.overallConsumption],
-        ["Export Date", new Date().toLocaleString("en-IN")],
-      ];
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(profileRows), "Company Profile");
-
-      const zoneHeaders = ["Name", "PQ Name", "V1", "V2", "V3", "Uhtd1", "Uhtd2", "Uhtd3", "I1", "I2", "I3", "Ihtd1", "Ihtd2", "Ihtd3", "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag", "Total Power (kW)", "Description", "Date"];
-      const zoneRows = (zones ?? []).map((z: any) => [z.name, z.pqName ?? "", (z.v1 ?? ""), (z.v2 ?? ""), (z.v3 ?? ""), (z.uhtd1 ?? ""), (z.uhtd2 ?? ""), (z.uhtd3 ?? ""), (z.i1 ?? ""), (z.i2 ?? ""), (z.i3 ?? ""), (z.ihtd1 ?? ""), (z.ihtd2 ?? ""), (z.ihtd3 ?? ""), (z.pf ?? ""), (z.kvarD ?? ""), (z.kvarQ ?? ""), (z.kvarLeadLag ?? ""), (z.totalPower ?? ""), (z.description ?? ""), new Date(z.createdAt).toLocaleString("en-IN")]);
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([zoneHeaders, ...zoneRows]), "Plant Main Inputs");
-
-      const areaHeaders = ["Plant Main Input", "MCC/PCC Name", "PQ Name", "V1", "V2", "V3", "Uhtd1", "Uhtd2", "Uhtd3", "I1", "I2", "I3", "Ihtd1", "Ihtd2", "Ihtd3", "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag", "Total Power (kW)", "Description", "Date"];
-      const areaRows = (areas ?? []).map((a: any) => {
-        const zone = (zones ?? []).find((z: any) => z.id === a.zoneId);
-        return [(zone?.name ?? "Unknown"), a.name, (a.pqName ?? ""), (a.v1 ?? ""), (a.v2 ?? ""), (a.v3 ?? ""), (a.uhtd1 ?? ""), (a.uhtd2 ?? ""), (a.uhtd3 ?? ""), (a.i1 ?? ""), (a.i2 ?? ""), (a.i3 ?? ""), (a.ihtd1 ?? ""), (a.ihtd2 ?? ""), (a.ihtd3 ?? ""), (a.pf ?? ""), (a.kvarD ?? ""), (a.kvarQ ?? ""), (a.kvarLeadLag ?? ""), (a.totalPower ?? ""), (a.description ?? ""), new Date(a.createdAt).toLocaleString("en-IN")];
-      });
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([areaHeaders, ...areaRows]), "MCC-PCC Areas");
-
-      const entryHeaders = ["Zone", "Area (MCC/PCC)", "Machine Tag", "Starter Type", "Rated kW", "Rated HP", "Voltage (V)", "Current (A)", "KVA", "Power Factor", "KVAr", "Measured kW", "Calculated Power (kW)", "Load Factor", "Description", "Date"];
-      const entryRows = (entries ?? []).map((e: any) => {
-        const area = (areas ?? []).find((a: any) => a.id === e.areaId);
-        const zone = (zones ?? []).find((z: any) => z.id === area?.zoneId);
-        return [(zone?.name ?? "Unknown"), (area?.name ?? "Unknown"), e.machineTag, e.starterType, e.ratedKw, (e.ratedHp ?? ""), (e.voltage ?? ""), (e.current ?? ""), (e.kva ?? ""), (e.pf ?? ""), (e.kvar ?? ""), e.measuredKw, Number(e.calculatedPower).toFixed(2), Number(e.loadFactor).toFixed(3), (e.description ?? ""), new Date(e.createdAt).toLocaleString("en-IN")];
-      });
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([entryHeaders, ...entryRows]), "Motor Loads");
-
-      const xlsxBuffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+      const { base64, filename } = buildExcelBase64(profile, zones, areas, entries, apfcs);
+      const xlsxBuffer = Buffer.from(base64, "base64");
       const today = new Date();
       const ddmm = `${String(today.getDate()).padStart(2, "0")}${String(today.getMonth() + 1).padStart(2, "0")}`;
-      const filename = `${(profile.companyName ?? "export").replace(/\s+/g, "_")}_${ddmm}.xlsx`;
 
       const addressParts = [profile.area, profile.district, profile.state, profile.pincode].filter(Boolean);
       const address = addressParts.join(", ") || "N/A";
@@ -174,7 +152,7 @@ IITGN Kisem Lab`;
 
       await transporter.sendMail({
         from: `"Fox Kisem" <${process.env.SMTP_USER}>`,
-        to: ADMIN_EMAILS.join(", "),
+        to: ADMIN_EMAILS,
         subject: `Motor Load Report — ${company} (${ddmm})`,
         text: emailBody,
         attachments: [

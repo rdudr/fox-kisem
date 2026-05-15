@@ -3,155 +3,224 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Download, AlertTriangle, CloudUpload, CheckCircle, SaveAll } from "lucide-react";
+import { Download, AlertTriangle, CloudUpload, Loader2, CheckCircle2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useAuthStore } from "@/lib/auth-store";
-import { exportOfflineExcel, buildExcelBase64 } from "@/lib/export-offline";
+import { exportOfflineExcel } from "@/lib/export-offline";
+import { MailSendModal } from "@/components/dashboard/mail-send-modal";
 import { toast } from "sonner";
 
 export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
   const router = useRouter();
   const [showWarning, setShowWarning] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  
+  const [mailModalStatus, setMailModalStatus] = useState<"sending" | "success" | "error" | "idle">("idle");
+  const [syncJobCount, setSyncJobCount] = useState(0);
+
   const profile = useAppStore((s) => s.profile);
   const zones   = useAppStore((s) => s.zones);
   const areas   = useAppStore((s) => s.areas);
   const entries = useAppStore((s) => s.entries);
+  const apfcs   = useAppStore((s) => s.apfcs);
   const wipeData = useAppStore((s) => s.wipeData);
-  
-  const syncQueue = useAppStore((s) => s.syncQueue);
-  const addJobToQueue = useAppStore((s) => s.addJobToQueue);
+
+  const syncQueue      = useAppStore((s) => s.syncQueue);
+  const addJobToQueue  = useAppStore((s) => s.addJobToQueue);
   const updateJobStatus = useAppStore((s) => s.updateJobStatus);
-  const pruneQueue = useAppStore((s) => s.pruneQueue);
-  
+  const pruneQueue     = useAppStore((s) => s.pruneQueue);
+
   const displayName = useAuthStore((s) => s.displayName);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+  // Server URL — embedded at build time; can be overridden in localStorage
+  const ENV_SERVER = process.env.NEXT_PUBLIC_API_URL || "";
 
-  const pendingJobs = syncQueue.filter(j => j.status === 'pending');
+  const pendingJobs = syncQueue.filter((j) => j.status === "pending");
 
-  // Prune the queue automatically when component mounts
-  useEffect(() => {
-    pruneQueue();
-  }, [pruneQueue]);
+  useEffect(() => { pruneQueue(); }, [pruneQueue]);
 
-  const handleExportAndComplete = async () => {
-    if (!hasCompany) {
-      setShowWarning(true);
-      return;
+  // ─── Resolve server URL ──────────────────────────────────────────────────
+  function getServerBase(): string {
+    if (ENV_SERVER) return ENV_SERVER.replace(/\/$/, "");
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("FOX_KISEM_SERVER_URL");
+      if (stored) return stored.replace(/\/$/, "");
     }
-    // Prepare job and payload
-    const jobId = crypto.randomUUID();
-    const payload = { profile, zones, areas, entries };
+    return "";
+  }
 
-    // Add job to queue (so it's tracked even if sync fails)
-    addJobToQueue({
-      jobId,
-      status: 'pending',
-      createdAt: Date.now(),
-      reporterName: displayName || "Engineer",
-      payload,
-    });
-
-    // 1. Download the Excel file locally immediately
-    try {
-      await exportOfflineExcel(profile, zones, areas, entries);
-    } catch (err) {
-      console.error('Local export failed', err);
-      toast.error('Local export failed. Please try again.');
-      return;
-    }
-
-    // 2. If online, attempt immediate sync (this will save on server and trigger email)
-    if (typeof navigator !== 'undefined' && navigator.onLine) {
-      const ok = await trySyncJob(jobId, payload);
-      if (ok) {
-        // Only clear workspace after successful server sync
-        wipeData();
-        toast.success('Report exported and emailed to admins! Workspace cleared.');
-      } else {
-        toast.warning('Saved locally. Sync failed; report left in workspace and will retry when online.');
-      }
-    } else {
-      // Offline: keep data in workspace and leave job pending so user can retry sync later
-      toast.success('Report saved locally. You are offline; sync will occur when online.');
-    }
-  };
-
-  const handleSyncAll = async () => {
-    if (pendingJobs.length === 0) {
-      return toast.info("Everything is up to date!");
-    }
-    setSyncing(true);
-    let successCount = 0;
-
-    for (const job of pendingJobs) {
-      const ok = await trySyncJob(job.jobId, job.payload);
-      if (ok) successCount++;
-    }
-
-    setSyncing(false);
-    if (successCount === pendingJobs.length) {
-      toast.success("All reports synced and emailed to admins!");
-    } else if (successCount > 0) {
-      toast.warning(`Synced ${successCount}/${pendingJobs.length} reports.`);
-    } else {
-      toast.error("Sync failed. Check internet connection.");
-    }
-  };
-
-  const trySyncJob = async (jobId: string, payload: any) => {
-    // Resolve API base: pref from env -> localStorage -> prompt
-    let base = API_BASE;
-    if (!base) {
-      base = localStorage.getItem('FOX_KISEM_SERVER_URL') || '';
-    }
-
-    if (!base && typeof window !== 'undefined' && navigator.onLine) {
-      const entered = window.prompt('Enter server URL to sync reports (e.g. https://example.com):');
-      if (entered) {
-        base = entered.trim();
-        try { localStorage.setItem('FOX_KISEM_SERVER_URL', base); } catch {}
-      }
-    }
-
+  // ─── Try to POST one job to the server ──────────────────────────────────
+  async function trySyncJob(
+    jobId: string,
+    payload: { profile: any; zones: any[]; areas: any[]; entries: any[]; apfcs?: any[] }
+  ): Promise<boolean> {
+    const base = getServerBase();
     if (!base) return false;
 
     try {
-      const url = base.replace(/\/$/, '') + '/api/sync/queue';
-      const res = await fetch(url, {
+      const res = await fetch(`${base}/api/sync/queue`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobId,
           reporterName: displayName || "Engineer",
-          ...payload
+          ...payload,
         }),
       });
+
       if (res.ok) {
-        updateJobStatus(jobId, 'synced');
+        updateJobStatus(jobId, "synced");
         return true;
       }
+      const body = await res.json().catch(() => ({}));
+      console.warn("[sync] server error:", res.status, body);
       return false;
     } catch (err) {
-      console.warn('trySyncJob failed', err);
+      console.warn("[sync] fetch error:", err);
       return false;
+    }
+  }
+
+  // ─── Main export handler ─────────────────────────────────────────────────
+  const handleExportAndComplete = async () => {
+    if (!hasCompany) {
+      setShowWarning(true);
+      return;
+    }
+
+    setExporting(true);
+    const jobId = crypto.randomUUID();
+    const payload = { profile, zones, areas, entries, apfcs };
+
+    // 1. Always save Excel file locally first (silent save, no share popup)
+    let savedUri: string | null = null;
+    try {
+      savedUri = await exportOfflineExcel(profile, zones, areas, entries, apfcs);
+    } catch (err) {
+      console.error("[export] local save failed:", err);
+      toast.error("Failed to save Excel locally. Check storage permissions.");
+      setExporting(false);
+      return;
+    }
+
+    if (!savedUri) {
+      toast.error("Could not write file to device storage.");
+      setExporting(false);
+      return;
+    }
+
+    toast.success("Excel saved to device ✓");
+
+    // 2. Queue the job (so it can be retried later if sync fails now)
+    addJobToQueue({
+      jobId,
+      status: "pending",
+      createdAt: Date.now(),
+      reporterName: displayName || "Engineer",
+      payload,
+    });
+
+    // 3. If internet is available, sync immediately (saves to DB + sends email)
+    const isOnline = typeof navigator !== "undefined" && navigator.onLine;
+    if (isOnline) {
+      const serverBase = getServerBase();
+      if (serverBase) {
+        setMailModalStatus("sending");
+        const ok = await trySyncJob(jobId, payload);
+        if (ok) {
+          setMailModalStatus("success");
+          toast.success("Report emailed to admin team ✓");
+          setTimeout(() => {
+            setMailModalStatus("idle");
+            wipeData();
+          }, 2000);
+        } else {
+          setMailModalStatus("error");
+          toast.warning("Saved locally. Email sync failed — will retry when online.");
+          setTimeout(() => {
+            setMailModalStatus("idle");
+          }, 3000);
+        }
+      } else {
+        // No server configured — leave job pending, clear workspace
+        toast.info("No server configured. Report queued for later sync.");
+        wipeData();
+      }
+    } else {
+      // Offline — leave pending, workspace cleared
+      toast.info("Offline. Report queued — will email when you tap 'Sync'.");
+      wipeData();
+    }
+
+    setExporting(false);
+  };
+
+  // ─── Retry all pending sync jobs ────────────────────────────────────────
+  const handleSyncAll = async () => {
+    if (pendingJobs.length === 0) {
+      return toast.info("No pending reports to sync.");
+    }
+
+    const serverBase = getServerBase();
+    if (!serverBase) {
+      toast.error("No server configured. Please deploy the backend and update NEXT_PUBLIC_API_URL.");
+      return;
+    }
+
+    setSyncing(true);
+    setMailModalStatus("sending");
+    setSyncJobCount(pendingJobs.length);
+    
+    let ok = 0;
+    for (const job of pendingJobs) {
+      if (await trySyncJob(job.jobId, job.payload)) ok++;
+    }
+    
+    if (ok === pendingJobs.length) {
+      setMailModalStatus("success");
+      toast.success(`All ${ok} report(s) synced & emailed ✓`);
+      setTimeout(() => {
+        setMailModalStatus("idle");
+        setSyncing(false);
+      }, 2000);
+    } else if (ok > 0) {
+      setMailModalStatus("success");
+      toast.warning(`Synced ${ok} of ${pendingJobs.length}. Remaining will retry later.`);
+      setTimeout(() => {
+        setMailModalStatus("idle");
+        setSyncing(false);
+      }, 2000);
+    } else {
+      setMailModalStatus("error");
+      toast.error("Sync failed. Check internet connection or contact admin.");
+      setTimeout(() => {
+        setMailModalStatus("idle");
+        setSyncing(false);
+      }, 3000);
     }
   };
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      {/* Cloud Sync Button */}
+      <MailSendModal
+        isOpen={mailModalStatus !== "idle"}
+        status={mailModalStatus}
+        companyName={profile?.companyName || "Your Company"}
+        jobCount={syncJobCount || 1}
+      />
+      {/* ── Sync pending jobs ── */}
       <Button
         onClick={handleSyncAll}
-        disabled={syncing || pendingJobs.length === 0}
+        disabled={syncing}
         variant="secondary"
         className="relative border border-white/20 text-slate-300 hover:bg-white/10 gap-2 pr-10"
       >
-        <CloudUpload className="size-4" />
-        {syncing ? "Syncing..." : "Sync Offline Reports"}
-        
+        {syncing
+          ? <Loader2 className="size-4 animate-spin" />
+          : <CloudUpload className="size-4" />
+        }
+        {syncing ? "Syncing…" : "Sync Offline Reports"}
+
         {pendingJobs.length > 0 && (
           <span className="absolute -top-2 -right-2 px-1.5 min-w-[20px] h-5 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full animate-pulse">
             {pendingJobs.length}
@@ -159,16 +228,20 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         )}
       </Button>
 
-      {/* Export & Complete Workspace */}
+      {/* ── Export & Complete ── */}
       <Button
         onClick={handleExportAndComplete}
+        disabled={exporting}
         className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2 font-semibold shadow-lg shadow-emerald-900/20"
       >
-        <SaveAll className="size-4" />
-        Export & Complete
+        {exporting
+          ? <Loader2 className="size-4 animate-spin" />
+          : <Download className="size-4" />
+        }
+        {exporting ? "Exporting…" : "Export & Complete"}
       </Button>
 
-      {/* Warning modal */}
+      {/* ── Missing company modal ── */}
       {showWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="bg-slate-900 border border-white/10 p-6 rounded-xl shadow-2xl max-w-sm w-full">
@@ -177,14 +250,24 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
               <h3 className="text-lg font-semibold">Missing Company Details</h3>
             </div>
             <p className="text-slate-300 text-sm mb-6">
-              You haven&apos;t added the company details yet. The exported report will show &quot;UNKNOWN COMPANY&quot;.
+              No company details found. The report will show &quot;Unknown Company&quot;. Add details for a proper report.
             </p>
             <div className="flex flex-col gap-2">
-              <Button onClick={() => { setShowWarning(false); router.push("/company"); }} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white">
+              <Button
+                onClick={() => { setShowWarning(false); router.push("/company"); }}
+                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white"
+              >
                 Add Company Details
               </Button>
-              <Button onClick={() => { setShowWarning(false); exportOfflineExcel(profile, zones, areas, entries); }} variant="ghost" className="w-full text-slate-400 hover:text-white">
-                Download Anyway
+              <Button
+                onClick={async () => {
+                  setShowWarning(false);
+                  await handleExportAndComplete();
+                }}
+                variant="ghost"
+                className="w-full text-slate-400 hover:text-white"
+              >
+                Export Anyway
               </Button>
             </div>
           </div>

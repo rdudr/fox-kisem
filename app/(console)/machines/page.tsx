@@ -17,6 +17,7 @@ export default function MotorLoadPage() {
     areaId: "",
     machineTag: "",
     starterType: "",
+    vfdFrequency: "",
     ratedKw: "",
     ratedHp: "",
     voltage: "",
@@ -28,10 +29,13 @@ export default function MotorLoadPage() {
     description: "",
   });
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const zones = useAppStore((state) => state.zones);
   const areas = useAppStore((state) => state.areas);
   const entries = useAppStore((state) => state.entries);
   const addEntryAction = useAppStore((state) => state.addEntry);
+  const updateEntryAction = useAppStore((state) => state.updateEntry);
 
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -73,6 +77,7 @@ export default function MotorLoadPage() {
       areaId: entry.areaId,
       machineTag: entry.machineTag,
       starterType: entry.starterType as StarterType || "DOL",
+      vfdFrequency: entry.starterType === "VFD" && entry.vfdFrequency ? Number(entry.vfdFrequency) : undefined,
       ratedKw: Number(entry.ratedKw),
       ratedHp: entry.ratedHp ? Number(entry.ratedHp) : undefined,
       voltage: entry.voltage ? Number(entry.voltage) : undefined,
@@ -88,13 +93,22 @@ export default function MotorLoadPage() {
       createdById: "local-user",
     };
     
-    addEntryAction(payload);
+    if (editingId) {
+      updateEntryAction(editingId, payload);
+      toast.success("Motor Load updated locally");
+    } else {
+      addEntryAction(payload);
+      toast.success("Motor Load added locally");
+    }
+    
+    setEditingId(null);
     
     // Clear the input fields but keep the selected Area
     setEntry(prev => ({
       ...prev,
       machineTag: "",
       starterType: "",
+      vfdFrequency: "",
       ratedKw: "",
       ratedHp: "",
       voltage: "",
@@ -105,8 +119,45 @@ export default function MotorLoadPage() {
       measuredKw: "",
       description: "",
     }));
-    
-    toast.success("Motor Load added locally");
+  }
+
+  function handleEdit(e: any) {
+    setEditingId(e.id);
+    setEntry({
+      areaId: e.areaId || "",
+      machineTag: e.machineTag || "",
+      starterType: e.starterType || "",
+      vfdFrequency: e.vfdFrequency?.toString() || "",
+      ratedKw: e.ratedKw?.toString() || "",
+      ratedHp: e.ratedHp?.toString() || "",
+      voltage: e.voltage?.toString() || "",
+      current: e.current?.toString() || "",
+      kva: e.kva?.toString() || "",
+      pf: e.pf?.toString() || "",
+      kvar: e.kvar?.toString() || "",
+      measuredKw: e.measuredKw?.toString() || "",
+      description: e.description || "",
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleCancel() {
+    setEditingId(null);
+    setEntry(prev => ({
+      ...prev,
+      machineTag: "",
+      starterType: "",
+      vfdFrequency: "",
+      ratedKw: "",
+      ratedHp: "",
+      voltage: "",
+      current: "",
+      kva: "",
+      pf: "",
+      kvar: "",
+      measuredKw: "",
+      description: "",
+    }));
   }
 
   return (
@@ -117,6 +168,7 @@ export default function MotorLoadPage() {
           <div><Label>MCC/PCC</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={entry.areaId} onChange={(e) => setEntry({ ...entry, areaId: e.target.value })}><option value="" disabled>Select MCC/PCC...</option>{areas.map((a) => <option key={a.id} value={a.id}>{a.name} ({zones.find(z => z.id === a.zoneId)?.name || "Unknown"})</option>)}</select></div>
           <div><Label>Machine tag</Label><Input value={entry.machineTag} onChange={(e) => setEntry({ ...entry, machineTag: e.target.value })} /></div>
           <div><Label>Starter</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={entry.starterType} onChange={(e) => setEntry({ ...entry, starterType: e.target.value })}><option value="" disabled>Select starter...</option><option value="VFD">VFD</option><option value="SD">SD</option><option value="DOL">DOL</option></select></div>
+          {entry.starterType === "VFD" && <div><Label>VFD Frequency (Hz)</Label><Input type="number" value={entry.vfdFrequency} onChange={(e) => setEntry({ ...entry, vfdFrequency: e.target.value })} /></div>}
           <div><Label>Rated kW</Label><Input type="number" value={entry.ratedKw} onChange={(e) => setEntry({ ...entry, ratedKw: e.target.value })} /></div>
           <div><Label>Rated HP</Label><Input type="number" value={entry.ratedHp} onChange={(e) => setEntry({ ...entry, ratedHp: e.target.value })} /></div>
           <div><Label>Voltage</Label><Input type="number" value={entry.voltage} onChange={(e) => setEntry({ ...entry, voltage: e.target.value })} /></div>
@@ -146,7 +198,10 @@ export default function MotorLoadPage() {
           </div>
         </div>
 
-        <div className="flex items-end gap-2"><Button onClick={() => void addEntry()}>Add Motor Load</Button></div>
+        <div className="flex items-end gap-2">
+          <Button onClick={() => void addEntry()}>{editingId ? "Update Entry" : "Add Motor Load"}</Button>
+          {editingId && <Button variant="secondary" onClick={handleCancel}>Cancel</Button>}
+        </div>
       </CardContent></Card>
 
       <Card><CardHeader><CardTitle>Motor Loads recorded</CardTitle></CardHeader><CardContent>
@@ -177,6 +232,7 @@ export default function MotorLoadPage() {
                 <tr className="bg-slate-900/50"><td colSpan={7} className="px-4 py-3">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-slate-300">
                     <div><span className="block text-[10px] uppercase text-slate-500">Starter</span>{e.starterType}</div>
+                    {e.starterType === "VFD" && <div><span className="block text-[10px] uppercase text-slate-500">VFD Frequency</span>{e.vfdFrequency ?? "N/A"} Hz</div>}
                     <div><span className="block text-[10px] uppercase text-slate-500">HP</span>{e.ratedHp ?? "N/A"}</div>
                     <div><span className="block text-[10px] uppercase text-slate-500">Voltage</span>{e.voltage ?? "N/A"}</div>
                     <div><span className="block text-[10px] uppercase text-slate-500">Current</span>{e.current ?? "N/A"}</div>
@@ -184,6 +240,9 @@ export default function MotorLoadPage() {
                     <div><span className="block text-[10px] uppercase text-slate-500">PF</span>{e.pf ?? "N/A"}</div>
                     <div><span className="block text-[10px] uppercase text-slate-500">KVAr</span>{e.kvar ?? "N/A"}</div>
                     <div className="col-span-2"><span className="block text-[10px] uppercase text-slate-500">Description</span>{e.description ?? "N/A"}</div>
+                    <div className="col-span-full pt-2 flex justify-end">
+                      <Button variant="secondary" size="sm" onClick={(ev) => { ev.stopPropagation(); handleEdit(e); }}>Edit</Button>
+                    </div>
                   </div>
                 </td></tr>
               )}

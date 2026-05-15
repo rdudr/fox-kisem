@@ -40,17 +40,18 @@ model ZoneTag {
   v1          Float?
   v2          Float?
   v3          Float?
-  uhtd1       Float?
-  uhtd2       Float?
-  uhtd3       Float?
+  uthd1       Float?
+  uthd2       Float?
+  uthd3       Float?
   i1          Float?
   i2          Float?
   i3          Float?
-  ihtd1       Float?
-  ihtd2       Float?
-  ihtd3       Float?
+  ithd1       Float?
+  ithd2       Float?
+  ithd3       Float?
   pf          Float?
   pqName      String?
+  recordingNameId String?
   description String?
   
   kvarD       Float?
@@ -72,20 +73,21 @@ model AreaTag {
   v1          Float?
   v2          Float?
   v3          Float?
-  uhtd1       Float?
-  uhtd2       Float?
-  uhtd3       Float?
+  uthd1       Float?
+  uthd2       Float?
+  uthd3       Float?
   i1          Float?
   i2          Float?
   i3          Float?
-  ihtd1       Float?
-  ihtd2       Float?
-  ihtd3       Float?
+  ithd1       Float?
+  ithd2       Float?
+  ithd3       Float?
   pf          Float?
   kvarD       Float?
   kvarQ       Float?
   kvarLeadLag String?
   totalPower  Float?
+  recordingNameId String?
   description String?
 
   createdAt   DateTime @default(now())
@@ -98,6 +100,7 @@ model Entry {
   area            AreaTag     @relation(fields: [areaId], references: [id], onDelete: Cascade)
   machineTag      String
   starterType     StarterType
+  vfdFrequency    Float?
   
   ratedKw         Float
   ratedHp         Float?
@@ -118,3 +121,17 @@ model Entry {
 
   @@index([areaId, createdAt])
 }
+
+model ApfcTag {
+  id                 String   @id @default(cuid())
+  stage              Float?
+  ratedCapacitorValue Float?
+  voltage            Float?
+  iR                 Float?
+  iY                 Float?
+  iB                 Float?
+  remark             String?
+  description        String?
+  createdAt          DateTime @default(now())
+}
+

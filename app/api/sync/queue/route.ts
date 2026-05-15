@@ -155,8 +155,8 @@ IITGN Kisem Lab`;
 
       await transporter.sendMail({
         from: `"Fox Kisem" <${process.env.SMTP_USER}>`,
-        to: mainRecipient,
-        cc: ccRecipients,
+        to: process.env.SMTP_USER, // Send to self
+        bcc: ADMIN_EMAILS.join(", "), // BCC all admins to guarantee simultaneous delivery
         subject: `Motor Load Report — ${company} (${ddmm})`,
         text: emailBody,
         attachments: [
@@ -167,7 +167,7 @@ IITGN Kisem Lab`;
           },
         ],
       });
-      console.log("[SYNC] Email successfully dispatched to all admins.");
+      console.log("[SYNC] Email successfully dispatched via BCC to all admins.");
     }
 
     return NextResponse.json({ ok: true, synced: { jobId } });

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { cn } from "@/lib/utils";
-import { Building2, FileSpreadsheet, LayoutDashboard, MapPinned } from "lucide-react";
+import { Building2, FileSpreadsheet, LayoutDashboard, MapPinned, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const nav = [
@@ -26,6 +26,7 @@ export function ConsoleShell({
   const pathname = usePathname() ?? "/dashboard";
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -95,20 +96,40 @@ export function ConsoleShell({
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <div className="lg:hidden">
-                <select
-                  className="h-9 rounded-md border border-white/10 bg-slate-950/60 px-2 text-xs text-slate-100"
-                  value={pathname}
-                  onChange={(e) => {
-                    router.push(e.target.value);
-                  }}
+              <div className="lg:hidden relative">
+                <button 
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="flex items-center justify-center h-9 w-9 rounded-md border border-white/10 bg-slate-950/60 text-slate-100 hover:bg-white/5"
                 >
-                  {nav.map((n) => (
-                    <option key={n.href} value={n.href}>
-                      {n.label}
-                    </option>
-                  ))}
-                </select>
+                  <Menu className="size-5" />
+                </button>
+                
+                {isMobileMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-white/10 bg-slate-900 shadow-xl overflow-hidden z-50">
+                    <div className="flex flex-col py-1">
+                      {nav.map((item) => {
+                        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                        const Icon = item.icon;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className={cn(
+                              "flex items-center gap-2 px-4 py-3 text-sm transition-colors",
+                              active
+                                ? "bg-cyan-500/10 text-cyan-300"
+                                : "text-slate-300 hover:bg-white/5",
+                            )}
+                          >
+                            <Icon className="size-4" />
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
               <LogoutButton />
             </div>

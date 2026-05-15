@@ -160,7 +160,7 @@ export default function MccPccPage() {
         <div className="grid gap-3 md:grid-cols-4">
           <div><Label>Plant Main Input</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={form.zoneId} onChange={(e) => setForm({...form, zoneId: e.target.value})}>{zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}</select></div>
           <div><Label>MCC/PCC Name</Label><Input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} /></div>
-          <div><Label>PQ NAME</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={form.pqName} onChange={(e) => setForm({...form, pqName: e.target.value})}><option value="">Select...</option><option value="Hioki">Hioki</option><option value="ALM36">ALM36</option><option value="ALM31">ALM31</option><option value="ALM45">ALM45</option></select></div>
+          <div><Label>PQ NAME</Label><select className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2" value={form.pqName} onChange={(e) => setForm({...form, pqName: e.target.value})}><option value="">Select...</option><option value="Hioki">Hioki</option><option value="ALM36">ALM36</option><option value="ALM31">ALM31</option><option value="ALM45">ALM45</option><option value="LM20">LM20</option></select></div>
           <div><Label>Recording Name ID</Label><Input value={form.recordingNameId} onChange={(e) => setForm({...form, recordingNameId: e.target.value})} /></div>
         </div>
 

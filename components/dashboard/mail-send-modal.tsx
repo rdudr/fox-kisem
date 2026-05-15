@@ -10,6 +10,7 @@ interface MailSendModalProps {
   companyName?: string;
   jobCount?: number;
   errorMessage?: string;
+  onClose?: () => void;
 }
 
 export function MailSendModal({
@@ -18,6 +19,7 @@ export function MailSendModal({
   companyName = "Your Company",
   jobCount = 1,
   errorMessage,
+  onClose,
 }: MailSendModalProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -41,12 +43,20 @@ export function MailSendModal({
     >
       <div
         className={cn(
-          "bg-gradient-to-b from-slate-900 to-slate-950 border border-white/10 rounded-2xl shadow-2xl max-w-sm w-full p-8 transition-all duration-300 transform",
+          "relative bg-gradient-to-b from-slate-900 to-slate-950 border border-white/10 rounded-2xl shadow-2xl max-w-sm w-full p-8 transition-all duration-300 transform",
           isOpen
             ? "opacity-100 scale-100"
             : "opacity-0 scale-95 pointer-events-none"
         )}
       >
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        )}
         {/* ── Sending State ── */}
         {status === "sending" && (
           <div className="flex flex-col items-center gap-4">

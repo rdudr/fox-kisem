@@ -81,6 +81,8 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
     }
   }
 
+  const [lastSyncResult, setLastSyncResult] = useState<"synced" | "queued" | "offline">("offline");
+
   // ─── Main export handler ─────────────────────────────────────────────────
   const handleExportAndComplete = async () => {
     if (!hasCompany) {
@@ -128,17 +130,21 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         setMailModalStatus("sending");
         const ok = await trySyncJob(jobId, payload);
         if (ok) {
+          setLastSyncResult("synced");
           setMailModalStatus("success");
           toast.success("Report emailed to admin team ✓");
         } else {
+          setLastSyncResult("queued");
           setMailModalStatus("error");
           toast.warning("Saved locally. Email sync failed — will retry when online.");
         }
         setTimeout(() => setMailModalStatus("idle"), 2000);
       } else {
+        setLastSyncResult("queued");
         toast.info("No server configured. Report queued for later sync.");
       }
     } else {
+      setLastSyncResult("offline");
       toast.info("Offline. Report queued — will email when you tap 'Sync'.");
     }
 
@@ -184,16 +190,15 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
     } else {
       setMailModalStatus("error");
       toast.error("Sync failed. Check internet connection or contact admin.");
-      setTimeout(() => {
-        setMailModalStatus("idle");
-        setSyncing(false);
-      }, 3000);
+      // DO NOT automatically close the error modal, let the user read it and click 'X'
+      setSyncing(false);
     }
   };
 
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const handleLogoutAction = async () => {
     try { await fetch("/api/auth/logout", { method: "POST" }); } catch {}
+    // Clear the active form data so next login starts fresh
     wipeData();
     router.push("/login");
   };
@@ -205,6 +210,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         status={mailModalStatus}
         companyName={profile?.companyName || "Your Company"}
         jobCount={syncJobCount || 1}
+        onClose={() => setMailModalStatus("idle")}
       />
 
       {/* ── Save Progress ── */}
@@ -295,9 +301,9 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
             <h3 className="text-xl font-bold text-white mb-2">Report Saved!</h3>
             <p className="text-sm text-slate-300 mb-6">
               The Excel file has been downloaded.
-              {typeof navigator !== "undefined" && navigator.onLine 
-                ? " The email has been sent successfully." 
-                : " Email is queued. Use 'Sync Offline Data' when connected."}
+              {lastSyncResult === "synced" && " The email has been sent successfully."}
+              {lastSyncResult === "queued" && " Email is queued. Use 'Sync Offline Data' when connected."}
+              {lastSyncResult === "offline" && " You are offline. Email is queued for later sync."}
             </p>
             <div className="flex flex-col gap-3">
               <Button 

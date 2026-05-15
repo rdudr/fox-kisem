@@ -4,11 +4,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAppStore } from "@/lib/store";
 
 export function LogoutButton() {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  const wipeData = useAppStore((s) => s.wipeData);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -21,6 +24,7 @@ export function LogoutButton() {
       }
     } finally {
       // Clear offline session & redirect
+      wipeData();
       router.push("/login");
     }
   };

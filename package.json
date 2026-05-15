@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/prepare-vercel.mjs && prisma generate && prisma db push --accept-data-loss && npx tsx prisma/seed.ts && next build",
-    "build:mobile": "prisma generate && next build",
+    "build:mobile": "prisma generate && cross-env NEXT_BUILD_TARGET=mobile next build",
     "export:apk": "node scripts/export-apk.mjs",
     "start": "next start",
     "lint": "eslint",
@@ -60,6 +60,7 @@
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",

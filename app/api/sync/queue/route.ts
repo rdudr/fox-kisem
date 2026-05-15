@@ -150,9 +150,13 @@ IITGN Kisem Lab`;
         },
       });
 
+      const mainRecipient = ADMIN_EMAILS[0];
+      const ccRecipients = ADMIN_EMAILS.slice(1);
+
       await transporter.sendMail({
         from: `"Fox Kisem" <${process.env.SMTP_USER}>`,
-        to: ADMIN_EMAILS,
+        to: mainRecipient,
+        cc: ccRecipients,
         subject: `Motor Load Report — ${company} (${ddmm})`,
         text: emailBody,
         attachments: [
@@ -163,6 +167,7 @@ IITGN Kisem Lab`;
           },
         ],
       });
+      console.log("[SYNC] Email successfully dispatched to all admins.");
     }
 
     return NextResponse.json({ ok: true, synced: { jobId } });

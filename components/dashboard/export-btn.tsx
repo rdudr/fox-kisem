@@ -210,7 +210,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
       {/* ── Save Progress ── */}
       <Button
         onClick={() => toast.success("Progress saved securely to device!")}
-        variant="outline"
+        variant="secondary"
         className="border-cyan-500/30 text-cyan-50 hover:bg-cyan-500/10 gap-2 w-full sm:w-auto"
       >
         <CheckCircle2 className="size-4" />
@@ -309,8 +309,8 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
               </Button>
               <Button 
                 onClick={() => { wipeData(); setShowCompleteModal(false); router.push("/company"); }} 
-                variant="outline" 
-                className="w-full border-white/20 text-white bg-white/5 hover:bg-white/10"
+                variant="secondary" 
+                className="w-full border border-white/20 text-white bg-white/5 hover:bg-white/10"
               >
                 Start New Report
               </Button>

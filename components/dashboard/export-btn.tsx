@@ -32,8 +32,8 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
 
   const displayName = useAuthStore((s) => s.displayName);
 
-  // Server URL — embedded at build time; can be overridden in localStorage
-  const ENV_SERVER = process.env.NEXT_PUBLIC_API_URL || "";
+  // Server URL — embedded at build time; falls back to production URL
+  const ENV_SERVER = process.env.NEXT_PUBLIC_API_URL || "https://fox-kisem.vercel.app";
 
   const pendingJobs = syncQueue.filter((j) => j.status === "pending");
 
@@ -41,12 +41,12 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
 
   // ─── Resolve server URL ──────────────────────────────────────────────────
   function getServerBase(): string {
-    if (ENV_SERVER) return ENV_SERVER.replace(/\/$/, "");
+    // Always have a working URL — local override → build env → hardcoded production
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("FOX_KISEM_SERVER_URL");
       if (stored) return stored.replace(/\/$/, "");
     }
-    return "";
+    return ENV_SERVER.replace(/\/$/, "");
   }
 
   // ─── Try to POST one job to the server ──────────────────────────────────

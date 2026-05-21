@@ -42,10 +42,12 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
 
   // ─── Resolve server URL ──────────────────────────────────────────────────
   function getServerBase(): string {
-    // Always have a working URL — local override → build env → hardcoded production
+    // Use same origin (relative) so preview and production deployments both work
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("FOX_KISEM_SERVER_URL");
       if (stored) return stored.replace(/\/$/, "");
+      // Use current origin so preview URLs work too
+      return window.location.origin;
     }
     return ENV_SERVER.replace(/\/$/, "");
   }

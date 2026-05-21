@@ -16,6 +16,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
   const [exporting, setExporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [mailModalStatus, setMailModalStatus] = useState<"sending" | "success" | "error" | "idle">("idle");
+  const [mailErrorMessage, setMailErrorMessage] = useState<string | undefined>(undefined);
   const [syncJobCount, setSyncJobCount] = useState(0);
 
   const profile = useAppStore((s) => s.profile);
@@ -53,9 +54,9 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
   async function trySyncJob(
     jobId: string,
     payload: { profile: any; zones: any[]; areas: any[]; entries: any[]; apfcs?: any[] }
-  ): Promise<boolean> {
+  ): Promise<{ ok: boolean; error?: string }> {
     const base = getServerBase();
-    if (!base) return false;
+    if (!base) return { ok: false, error: "No server URL configured" };
 
     try {
       const res = await fetch(`${base}/api/sync/queue`, {
@@ -70,24 +71,17 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
 
       if (res.ok) {
         updateJobStatus(jobId, "synced");
-        return true;
+        return { ok: true };
       }
 
-      const body = await res.json().catch(() => ({ error: "Unknown error" }));
-      console.error("[sync] Server error:", {
-        status: res.status,
-        statusText: res.statusText,
-        error: body.error,
-      });
-
-      if (body.error) {
-        toast.error(`Sync failed: ${body.error}`);
-      }
-      return false;
+      const body = await res.json().catch(() => ({ error: "Server error" }));
+      const errMsg = body.error || `Server error ${res.status}`;
+      console.error("[sync] Server error:", res.status, errMsg);
+      return { ok: false, error: errMsg };
     } catch (err: any) {
-      console.error("[sync] Fetch error:", err);
-      toast.error(`Network error: ${err.message}`);
-      return false;
+      const errMsg = `Connection failed: ${err.message}`;
+      console.error("[sync] Fetch error:", errMsg);
+      return { ok: false, error: errMsg };
     }
   }
 
@@ -138,17 +132,18 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
       const serverBase = getServerBase();
       if (serverBase) {
         setMailModalStatus("sending");
-        const ok = await trySyncJob(jobId, payload);
-        if (ok) {
+        const result = await trySyncJob(jobId, payload);
+        if (result.ok) {
           setLastSyncResult("synced");
           setMailModalStatus("success");
+          setMailErrorMessage(undefined);
           toast.success("Report emailed to admin team ✓");
         } else {
           setLastSyncResult("queued");
+          setMailErrorMessage(result.error);
           setMailModalStatus("error");
-          toast.warning("Saved locally. Email sync failed — will retry when online.");
         }
-        setTimeout(() => setMailModalStatus("idle"), 2000);
+        setTimeout(() => setMailModalStatus("idle"), 4000);
       } else {
         setLastSyncResult("queued");
         toast.info("No server configured. Report queued for later sync.");
@@ -179,8 +174,11 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
     setSyncJobCount(pendingJobs.length);
     
     let ok = 0;
+    let lastError: string | undefined;
     for (const job of pendingJobs) {
-      if (await trySyncJob(job.jobId, job.payload)) ok++;
+      const result = await trySyncJob(job.jobId, job.payload);
+      if (result.ok) ok++;
+      else lastError = result.error;
     }
     
     if (ok === pendingJobs.length) {
@@ -198,6 +196,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         setSyncing(false);
       }, 2000);
     } else {
+      setMailErrorMessage(lastError);
       setMailModalStatus("error");
       toast.error("Sync failed. Check internet connection or contact admin.");
       // DO NOT automatically close the error modal, let the user read it and click 'X'
@@ -223,6 +222,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         status={mailModalStatus}
         companyName={profile?.companyName || "Your Company"}
         jobCount={syncJobCount || 1}
+        errorMessage={mailErrorMessage}
         onClose={() => setMailModalStatus("idle")}
       />
 

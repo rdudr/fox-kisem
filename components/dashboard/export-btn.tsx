@@ -42,12 +42,19 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
 
   // ─── Resolve server URL ──────────────────────────────────────────────────
   function getServerBase(): string {
-    // Use same origin (relative) so preview and production deployments both work
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("FOX_KISEM_SERVER_URL");
       if (stored) return stored.replace(/\/$/, "");
-      // Use current origin so preview URLs work too
-      return window.location.origin;
+
+      // Detect mobile (Capacitor/file/local) — use production Vercel URL
+      const origin = window.location.origin;
+      const isCapacitor = origin.startsWith("capacitor:") || origin.startsWith("file:") || origin.includes("localhost");
+      if (isCapacitor) {
+        return "https://fox-kisem.vercel.app";
+      }
+
+      // Web: use current origin (supports preview deployments)
+      return origin;
     }
     return ENV_SERVER.replace(/\/$/, "");
   }

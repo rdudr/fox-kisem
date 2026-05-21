@@ -4,9 +4,6 @@ import { buildExcelBase64 } from "@/lib/export-offline";
 
 export const runtime = 'nodejs';
 
-// ── Hardcoded Admins ──────────────────────────────────────────────────
-// Put your emails here. These are the people who will receive the
-// report automatically when a field engineer successfully syncs.
 const ADMIN_EMAILS = [
   "loriyasagar.b@iitgn.ac.in",
   "abhay.maurya@iitgn.ac.in",
@@ -18,13 +15,12 @@ const ADMIN_EMAILS = [
 ];
 
 export async function POST(req: Request) {
+  const { jobId, reporterName, profile, zones, areas, entries, apfcs } = await req.json();
+
+  console.log("[SYNC] Received jobId:", jobId, "hasProfile:", !!profile);
+
+  // ── 1. Save to DB (non-fatal — email still sends if DB fails) ──────────
   try {
-    const body = await req.json();
-    const { jobId, reporterName, profile, zones, areas, entries, apfcs } = body;
-
-    console.log("[SYNC] Request received - jobId:", jobId, "hasProfile:", !!profile);
-
-    // 1. Save data to Database (same as regular sync)
     if (profile) {
       await prisma.companyProfile.upsert({
         where: { id: profile.id },
@@ -80,31 +76,15 @@ export async function POST(req: Request) {
       await prisma.entry.upsert({
         where: { id: e.id },
         create: {
-          id: e.id,
-          areaId: e.areaId,
-          machineTag: e.machineTag,
-          starterType: e.starterType,
-          vfdFrequency: e.vfdFrequency,
-          ratedKw: e.ratedKw,
-          ratedHp: e.ratedHp,
-          voltage: e.voltage,
-          current: e.current,
-          kva: e.kva,
-          pf: e.pf,
-          kvar: e.kvar,
-          measuredKw: e.measuredKw,
-          calculatedPower: e.calculatedPower,
-          loadFactor: e.loadFactor,
-          description: e.description,
-          createdById: systemUser.id,
+          id: e.id, areaId: e.areaId, machineTag: e.machineTag, starterType: e.starterType,
+          vfdFrequency: e.vfdFrequency, ratedKw: e.ratedKw, ratedHp: e.ratedHp,
+          voltage: e.voltage, current: e.current, kva: e.kva, pf: e.pf, kvar: e.kvar,
+          measuredKw: e.measuredKw, calculatedPower: e.calculatedPower, loadFactor: e.loadFactor,
+          description: e.description, createdById: systemUser.id,
         },
         update: {
-          machineTag: e.machineTag,
-          starterType: e.starterType,
-          vfdFrequency: e.vfdFrequency,
-          ratedKw: e.ratedKw,
-          measuredKw: e.measuredKw,
-          calculatedPower: e.calculatedPower,
+          machineTag: e.machineTag, starterType: e.starterType, vfdFrequency: e.vfdFrequency,
+          ratedKw: e.ratedKw, measuredKw: e.measuredKw, calculatedPower: e.calculatedPower,
           loadFactor: e.loadFactor,
         },
       });
@@ -118,67 +98,69 @@ export async function POST(req: Request) {
       });
     }
 
-    // 2. Generate Excel & Send Email if Profile exists
-    if (profile) {
-      const { base64, filename } = buildExcelBase64(profile, zones, areas, entries, apfcs);
-      const xlsxBuffer = Buffer.from(base64, "base64");
-      const today = new Date();
-      const ddmm = `${String(today.getDate()).padStart(2, "0")}${String(today.getMonth() + 1).padStart(2, "0")}`;
+    console.log("[SYNC] Database save successful");
+  } catch (dbErr: any) {
+    // DB failure is non-fatal — we still send the email
+    console.error("[SYNC] Database error (non-fatal):", dbErr.message);
+  }
 
-      const addressParts = [profile.area, profile.district, profile.state, profile.pincode].filter(Boolean);
-      const address = addressParts.join(", ") || "N/A";
-      const finalTime = today.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-      const user = reporterName || "the field engineer";
-      const company = profile.companyName || "the company";
-
-      const emailBody = `Dear Team,
-
-I am sending this mail to inform you that ${user} has successfully read and collected the industrial data of ${company}, located at ${address}.
-
-The final report regarding the motor load analysis was completed on ${finalTime}.
-
-Please find the attached data and report below for your reference and further review.
-
-Best regards,
-Fox Kisem — Industrial Data Collection System
-IITGN Kisem Lab`;
-
-      if (!process.env.RESEND_API_KEY) {
-        console.error("[SYNC] RESEND_API_KEY is not set in environment variables");
-        throw new Error("Email service not configured: RESEND_API_KEY missing");
-      }
-
-      const { Resend } = await import("resend");
-      const resend = new Resend(process.env.RESEND_API_KEY);
-
-      console.log("[SYNC] Sending email to:", ADMIN_EMAILS[0]);
-      console.log("[SYNC] Using sender:", process.env.RESEND_FROM_EMAIL);
-
-      const emailResponse = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || "Fox Kisem <noreply@resend.dev>",
-        to: ADMIN_EMAILS[0],
-        bcc: ADMIN_EMAILS.slice(1),
-        subject: `Motor Load Report — ${company} (${ddmm})`,
-        html: `<div style="font-family: sans-serif; color: #333;"><h2>Fox Kisem Report Submission</h2><p>${emailBody.replace(/\n/g, '<br>')}</p></div>`,
-        attachments: [
-          {
-            filename,
-            content: xlsxBuffer,
-          },
-        ],
-      });
-
-      if (emailResponse.error) {
-        console.error("[SYNC] Resend error:", emailResponse.error);
-        throw new Error(`Resend API error: ${emailResponse.error.message}`);
-      }
-
-      console.log("[SYNC] Email successfully sent:", emailResponse.data?.id);
+  // ── 2. Send Email via Resend (always attempted) ────────────────────────
+  try {
+    if (!profile) {
+      return NextResponse.json({ ok: true, synced: { jobId }, note: "No profile — email skipped" });
     }
 
-    return NextResponse.json({ ok: true, synced: { jobId } });
+    if (!process.env.RESEND_API_KEY) {
+      console.error("[SYNC] RESEND_API_KEY missing");
+      return NextResponse.json({ error: "Email service not configured. Add RESEND_API_KEY to Vercel environment variables." }, { status: 500 });
+    }
+
+    const { base64, filename } = buildExcelBase64(profile, zones, areas, entries, apfcs);
+    const xlsxBuffer = Buffer.from(base64, "base64");
+    const today = new Date();
+    const ddmm = `${String(today.getDate()).padStart(2, "0")}${String(today.getMonth() + 1).padStart(2, "0")}`;
+    const addressParts = [profile.area, profile.district, profile.state, profile.pincode].filter(Boolean);
+    const address = addressParts.join(", ") || "N/A";
+    const finalTime = today.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+    const engineer = reporterName || "Field Engineer";
+    const company = profile.companyName || "Company";
+
+    const { Resend } = await import("resend");
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    console.log("[SYNC] Sending email from:", process.env.RESEND_FROM_EMAIL || "noreply@resend.dev");
+
+    const emailResponse = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || "Fox Kisem <noreply@resend.dev>",
+      to: ADMIN_EMAILS[0],
+      bcc: ADMIN_EMAILS.slice(1),
+      subject: `Motor Load Report — ${company} (${ddmm})`,
+      html: `<div style="font-family:sans-serif;color:#333;">
+        <h2>Fox Kisem — Industrial Data Report</h2>
+        <p><strong>${engineer}</strong> has collected data for <strong>${company}</strong></p>
+        <p>Location: ${address}</p>
+        <p>Completed: ${finalTime}</p>
+        <ul>
+          <li>Zones: ${(zones ?? []).length}</li>
+          <li>MCC/PCC Areas: ${(areas ?? []).length}</li>
+          <li>Motor Loads: ${(entries ?? []).length}</li>
+        </ul>
+        <p>Full report attached.</p>
+        <hr><p style="font-size:12px;color:#999;">Fox Kisem — IITGN Kisem Lab</p>
+      </div>`,
+      attachments: [{ filename, content: xlsxBuffer }],
+    });
+
+    if (emailResponse.error) {
+      console.error("[SYNC] Resend error:", emailResponse.error);
+      return NextResponse.json({ error: `Email failed: ${emailResponse.error.message}` }, { status: 500 });
+    }
+
+    console.log("[SYNC] Email sent successfully:", emailResponse.data?.id);
+    return NextResponse.json({ ok: true, synced: { jobId }, emailId: emailResponse.data?.id });
+
   } catch (err: any) {
-    console.error("[SYNC/EMAIL ERROR]", err);
-    return NextResponse.json({ error: "Sync failed or Email failed: " + err.message }, { status: 500 });
+    console.error("[SYNC] Email error:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

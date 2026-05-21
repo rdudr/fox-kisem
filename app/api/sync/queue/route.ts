@@ -125,21 +125,22 @@ export async function POST(req: Request) {
     const engineer = reporterName || "Field Engineer";
     const company = profile.companyName || "Company";
 
-    const { Resend } = await import("resend");
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const nodemailer = await import("nodemailer");
+    const transporter = nodemailer.default.createTransport({
+      host: process.env.SMTP_HOST ?? "smtp.gmail.com",
+      port: Number(process.env.SMTP_PORT ?? 587),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
 
-    // Free Resend tier: can only send to registered email
-    // Set RESEND_TO_EMAIL to your registered email to use free tier
-    // Remove RESEND_TO_EMAIL once domain is verified to send to all admins
-    const recipients = process.env.RESEND_TO_EMAIL
-      ? [process.env.RESEND_TO_EMAIL]  // free tier: only registered email
-      : ADMIN_EMAILS;                   // verified domain: all admins
-    console.log("[SYNC] Sending email to:", recipients);
+    console.log("[SYNC] Sending email via Gmail to all admins");
 
-    const emailResponse = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "Fox Kisem <noreply@resend.dev>",
-      to: recipients,
-      bcc: [],
+    await transporter.sendMail({
+      from: `"Fox Kisem" <${process.env.SMTP_USER}>`,
+      to: ADMIN_EMAILS.join(", "),
       subject: `Motor Load Report — ${company} (${ddmm})`,
       html: `<div style="font-family:sans-serif;color:#333;">
         <h2>Fox Kisem — Industrial Data Report</h2>
@@ -157,12 +158,7 @@ export async function POST(req: Request) {
       attachments: [{ filename, content: xlsxBuffer }],
     });
 
-    if (emailResponse.error) {
-      console.error("[SYNC] Resend error:", emailResponse.error);
-      return NextResponse.json({ error: `Email failed: ${emailResponse.error.message}` }, { status: 500 });
-    }
-
-    console.log("[SYNC] Email sent successfully:", emailResponse.data?.id);
+    console.log("[SYNC] Email sent successfully via Gmail to all admins");
     return NextResponse.json({ ok: true, synced: { jobId }, emailId: emailResponse.data?.id });
 
   } catch (err: any) {

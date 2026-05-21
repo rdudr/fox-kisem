@@ -128,15 +128,18 @@ export async function POST(req: Request) {
     const { Resend } = await import("resend");
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // RESEND_TO_EMAIL = your Resend registered email (required for free tier)
-    // Once domain is verified, all ADMIN_EMAILS will receive it
-    const primaryRecipient = process.env.RESEND_TO_EMAIL || ADMIN_EMAILS[0];
-    console.log("[SYNC] Sending email to:", primaryRecipient);
+    // Free Resend tier: can only send to registered email
+    // Set RESEND_TO_EMAIL to your registered email to use free tier
+    // Remove RESEND_TO_EMAIL once domain is verified to send to all admins
+    const recipients = process.env.RESEND_TO_EMAIL
+      ? [process.env.RESEND_TO_EMAIL]  // free tier: only registered email
+      : ADMIN_EMAILS;                   // verified domain: all admins
+    console.log("[SYNC] Sending email to:", recipients);
 
     const emailResponse = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || "Fox Kisem <noreply@resend.dev>",
-      to: primaryRecipient,
-      bcc: process.env.RESEND_TO_EMAIL ? ADMIN_EMAILS : [],
+      to: recipients,
+      bcc: [],
       subject: `Motor Load Report — ${company} (${ddmm})`,
       html: `<div style="font-family:sans-serif;color:#333;">
         <h2>Fox Kisem — Industrial Data Report</h2>

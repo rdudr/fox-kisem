@@ -23,7 +23,7 @@ export type CompanyProfile = {
   district: string;
   state: string;
   pincode: string;
-  overallConsumption: string | number;
+  overallConsumption: string | number; // accepts text input, stored as float
   updatedAt: string;
 };
 

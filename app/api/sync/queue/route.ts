@@ -139,15 +139,23 @@ Best regards,
 Fox Kisem — Industrial Data Collection System
 IITGN Kisem Lab`;
 
+      if (!process.env.RESEND_API_KEY) {
+        console.error("[SYNC] RESEND_API_KEY is not set in environment variables");
+        throw new Error("Email service not configured: RESEND_API_KEY missing");
+      }
+
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
 
+      console.log("[SYNC] Sending email to:", ADMIN_EMAILS[0]);
+      console.log("[SYNC] Using sender:", process.env.RESEND_FROM_EMAIL);
+
       const emailResponse = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || "Fox Kisem <onboarding@resend.dev>",
+        from: process.env.RESEND_FROM_EMAIL || "Fox Kisem <noreply@resend.dev>",
         to: ADMIN_EMAILS[0],
         bcc: ADMIN_EMAILS.slice(1),
         subject: `Motor Load Report — ${company} (${ddmm})`,
-        html: `<div style="font-family: sans-serif; color: #333;"><h2>Fox Kisem Report Submission</h2><p>${emailBody}</p></div>`,
+        html: `<div style="font-family: sans-serif; color: #333;"><h2>Fox Kisem Report Submission</h2><p>${emailBody.replace(/\n/g, '<br>')}</p></div>`,
         attachments: [
           {
             filename,
@@ -157,10 +165,11 @@ IITGN Kisem Lab`;
       });
 
       if (emailResponse.error) {
-        throw new Error(emailResponse.error.message);
+        console.error("[SYNC] Resend error:", emailResponse.error);
+        throw new Error(`Resend API error: ${emailResponse.error.message}`);
       }
-      
-      console.log("[SYNC] Email successfully dispatched via Resend to all admins.");
+
+      console.log("[SYNC] Email successfully sent:", emailResponse.data?.id);
     }
 
     return NextResponse.json({ ok: true, synced: { jobId } });

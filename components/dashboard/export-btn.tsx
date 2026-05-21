@@ -72,11 +72,21 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         updateJobStatus(jobId, "synced");
         return true;
       }
-      const body = await res.json().catch(() => ({}));
-      console.warn("[sync] server error:", res.status, body);
+
+      const body = await res.json().catch(() => ({ error: "Unknown error" }));
+      console.error("[sync] Server error:", {
+        status: res.status,
+        statusText: res.statusText,
+        error: body.error,
+      });
+
+      if (body.error) {
+        toast.error(`Sync failed: ${body.error}`);
+      }
       return false;
-    } catch (err) {
-      console.warn("[sync] fetch error:", err);
+    } catch (err: any) {
+      console.error("[sync] Fetch error:", err);
+      toast.error(`Network error: ${err.message}`);
       return false;
     }
   }

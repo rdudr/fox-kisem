@@ -128,12 +128,15 @@ export async function POST(req: Request) {
     const { Resend } = await import("resend");
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    console.log("[SYNC] Sending email from:", process.env.RESEND_FROM_EMAIL || "noreply@resend.dev");
+    // RESEND_TO_EMAIL = your Resend registered email (required for free tier)
+    // Once domain is verified, all ADMIN_EMAILS will receive it
+    const primaryRecipient = process.env.RESEND_TO_EMAIL || ADMIN_EMAILS[0];
+    console.log("[SYNC] Sending email to:", primaryRecipient);
 
     const emailResponse = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || "Fox Kisem <noreply@resend.dev>",
-      to: ADMIN_EMAILS[0],
-      bcc: ADMIN_EMAILS.slice(1),
+      to: primaryRecipient,
+      bcc: process.env.RESEND_TO_EMAIL ? ADMIN_EMAILS : [],
       subject: `Motor Load Report — ${company} (${ddmm})`,
       html: `<div style="font-family:sans-serif;color:#333;">
         <h2>Fox Kisem — Industrial Data Report</h2>

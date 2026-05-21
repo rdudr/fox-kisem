@@ -1,7 +1,8 @@
-export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildExcelBase64 } from "@/lib/export-offline";
+
+export const runtime = 'nodejs';
 
 // ── Hardcoded Admins ──────────────────────────────────────────────────
 // Put your emails here. These are the people who will receive the
@@ -18,7 +19,10 @@ const ADMIN_EMAILS = [
 
 export async function POST(req: Request) {
   try {
-    const { jobId, reporterName, profile, zones, areas, entries, apfcs } = await req.json();
+    const body = await req.json();
+    const { jobId, reporterName, profile, zones, areas, entries, apfcs } = body;
+
+    console.log("[SYNC] Request received - jobId:", jobId, "hasProfile:", !!profile);
 
     // 1. Save data to Database (same as regular sync)
     if (profile) {

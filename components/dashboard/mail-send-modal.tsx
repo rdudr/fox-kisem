@@ -68,17 +68,17 @@ export function MailSendModal({
             </div>
             <div className="text-center">
               <h3 className="text-lg font-semibold text-slate-50 mb-1">
-                Sending Report
+                Submitting Report
               </h3>
               <p className="text-sm text-slate-400">
                 {jobCount === 1
-                  ? `Emailing ${companyName}...`
-                  : `Syncing ${jobCount} report${jobCount > 1 ? "s" : ""}...`}
+                  ? `Sending ${companyName} data...`
+                  : `Processing ${jobCount} report${jobCount > 1 ? "s" : ""}...`}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
-              <span className="text-xs text-slate-400">Processing</span>
+              <span className="text-xs text-slate-400">Please wait...</span>
             </div>
           </div>
         )}
@@ -94,15 +94,15 @@ export function MailSendModal({
             </div>
             <div className="text-center">
               <h3 className="text-lg font-semibold text-slate-50 mb-1">
-                Successfully Sent!
+                Report Submitted Successfully
               </h3>
               <p className="text-sm text-slate-400">
                 {jobCount === 1
-                  ? `Report for ${companyName} emailed`
-                  : `${jobCount} report${jobCount > 1 ? "s" : ""} synced`}
+                  ? `${companyName} data sent to admin team`
+                  : `${jobCount} report${jobCount > 1 ? "s" : ""} submitted`}
               </p>
               <p className="text-xs text-emerald-400/80 mt-2">
-                ✓ Admin team will receive the data shortly
+                ✓ Email notification sent
               </p>
             </div>
           </div>
@@ -119,13 +119,13 @@ export function MailSendModal({
             </div>
             <div className="text-center">
               <h3 className="text-lg font-semibold text-slate-50 mb-1">
-                Sync Failed
+                Submission Failed
               </h3>
               <p className="text-sm text-slate-400 mb-3">
-                {errorMessage || "Unable to sync report. Please try again."}
+                {errorMessage || "Unable to submit report. Check your internet connection."}
               </p>
               <p className="text-xs text-amber-300">
-                ⚠ Report saved locally. Tap 'Sync Offline Reports' to retry.
+                ⚠ Report queued locally. Use 'Resend Queued' when online to retry.
               </p>
             </div>
           </div>

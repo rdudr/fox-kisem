@@ -29,7 +29,7 @@ model CompanyProfile {
   district           String
   state              String
   pincode            String
-  overallConsumption Float
+  overallConsumption String   @default("0")
   updatedAt          DateTime @updatedAt
 }
 

@@ -68,6 +68,9 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
     if (!base) return { ok: false, error: "No server URL configured" };
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
       const res = await fetch(`${base}/api/sync/queue`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -76,7 +79,9 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
           reporterName: displayName || "Engineer",
           ...payload,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         updateJobStatus(jobId, "synced");

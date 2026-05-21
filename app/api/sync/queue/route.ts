@@ -14,6 +14,17 @@ const ADMIN_EMAILS = [
   "iea@iitgn.ac.in"
 ];
 
+// CORS headers for Capacitor mobile app and any cross-origin caller
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function POST(req: Request) {
   const { jobId, reporterName, profile, zones, areas, entries, apfcs } = await req.json();
 
@@ -107,12 +118,12 @@ export async function POST(req: Request) {
   // ── 2. Send Email via Resend (always attempted) ────────────────────────
   try {
     if (!profile) {
-      return NextResponse.json({ ok: true, synced: { jobId }, note: "No profile — email skipped" });
+      return NextResponse.json({ ok: true, synced: { jobId }, note: "No profile — email skipped" }, { headers: CORS_HEADERS });
     }
 
     if (!process.env.RESEND_API_KEY) {
       console.error("[SYNC] RESEND_API_KEY missing");
-      return NextResponse.json({ error: "Email service not configured. Add RESEND_API_KEY to Vercel environment variables." }, { status: 500 });
+      return NextResponse.json({ error: "Email service not configured. Add RESEND_API_KEY to Vercel environment variables." }, { status: 500, headers: CORS_HEADERS });
     }
 
     const { base64, filename } = buildExcelBase64(profile, zones, areas, entries, apfcs);
@@ -159,10 +170,10 @@ export async function POST(req: Request) {
     });
 
     console.log("[SYNC] Email sent successfully via Gmail to all admins");
-    return NextResponse.json({ ok: true, synced: { jobId } });
+    return NextResponse.json({ ok: true, synced: { jobId } }, { headers: CORS_HEADERS });
 
   } catch (err: any) {
     console.error("[SYNC] Email error:", err.message);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 500, headers: CORS_HEADERS });
   }
 }

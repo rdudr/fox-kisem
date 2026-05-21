@@ -31,7 +31,7 @@ export async function POST(req: Request) {
           district: profile.district ?? "",
           state: profile.state ?? "",
           pincode: profile.pincode ?? "",
-          overallConsumption: profile.overallConsumption ?? 0,
+          overallConsumption: String(profile.overallConsumption ?? "0"),
         },
         update: {
           companyName: profile.companyName,
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
           district: profile.district ?? "",
           state: profile.state ?? "",
           pincode: profile.pincode ?? "",
-          overallConsumption: profile.overallConsumption ?? 0,
+          overallConsumption: String(profile.overallConsumption ?? "0"),
         },
       });
     }

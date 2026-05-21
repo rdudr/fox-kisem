@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { cn } from "@/lib/utils";
-import { Building2, FileSpreadsheet, LayoutDashboard, MapPinned, Menu } from "lucide-react";
+import { Building2, FileSpreadsheet, LayoutDashboard, MapPinned, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const nav = [
@@ -45,6 +45,51 @@ export function ConsoleShell({
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_rgba(56,189,248,0.12),_transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(15,23,42,1),_#020617)] text-slate-100">
+      {/* Mobile Slide-in Drawer */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <aside className="absolute left-0 top-0 h-full w-72 bg-slate-950 border-r border-white/10 shadow-2xl transform transition-transform duration-300 ease-out">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <img src="/iitgnlogo.png" alt="IITGN Logo" className="h-8" />
+                <span className="text-sm font-semibold text-cyan-300">Fox Kisem</span>
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-center h-9 w-9 rounded-md text-slate-300 hover:bg-white/5"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-1 p-3">
+              {nav.map((item) => {
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors",
+                      active
+                        ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/25"
+                        : "text-slate-300 hover:bg-white/5",
+                    )}
+                  >
+                    <Icon className="size-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+        </div>
+      )}
       <div className="mx-auto flex max-w-[1600px] gap-6 px-4 py-6 lg:px-8">
         <aside className="hidden w-56 shrink-0 flex-col gap-6 lg:flex">
           <div className="rounded-xl border border-white/10 bg-slate-950/50 p-4 backdrop-blur-md flex flex-col items-center text-center">
@@ -96,41 +141,12 @@ export function ConsoleShell({
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <div className="lg:hidden relative">
-                <button 
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="flex items-center justify-center h-9 w-9 rounded-md border border-white/10 bg-slate-950/60 text-slate-100 hover:bg-white/5"
-                >
-                  <Menu className="size-5" />
-                </button>
-                
-                {isMobileMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-white/10 bg-slate-900 shadow-xl overflow-hidden z-50">
-                    <div className="flex flex-col py-1">
-                      {nav.map((item) => {
-                        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={cn(
-                              "flex items-center gap-2 px-4 py-3 text-sm transition-colors",
-                              active
-                                ? "bg-cyan-500/10 text-cyan-300"
-                                : "text-slate-300 hover:bg-white/5",
-                            )}
-                          >
-                            <Icon className="size-4" />
-                            {item.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="lg:hidden flex items-center justify-center h-9 w-9 rounded-md border border-white/10 bg-slate-950/60 text-slate-100 hover:bg-white/5"
+              >
+                <Menu className="size-5" />
+              </button>
               <LogoutButton />
             </div>
           </header>

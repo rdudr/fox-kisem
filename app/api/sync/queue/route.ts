@@ -143,11 +143,11 @@ IITGN Kisem Lab`;
       const resend = new Resend(process.env.RESEND_API_KEY);
 
       const emailResponse = await resend.emails.send({
-        from: "Fox Kisem <onboarding@resend.dev>", // Default test domain, change if verified
-        to: ADMIN_EMAILS[0], // Main recipient
-        bcc: ADMIN_EMAILS.slice(1), // BCC all other admins
+        from: process.env.RESEND_FROM_EMAIL || "Fox Kisem <onboarding@resend.dev>",
+        to: ADMIN_EMAILS[0],
+        bcc: ADMIN_EMAILS.slice(1),
         subject: `Motor Load Report — ${company} (${ddmm})`,
-        text: emailBody,
+        html: `<div style="font-family: sans-serif; color: #333;"><h2>Fox Kisem Report Submission</h2><p>${emailBody}</p></div>`,
         attachments: [
           {
             filename,

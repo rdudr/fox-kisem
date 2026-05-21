@@ -227,24 +227,34 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
       </Button>
 
       {/* ── Retry failed submissions ── */}
-      <Button
-        onClick={handleSyncAll}
-        disabled={syncing}
-        variant="secondary"
-        className="relative border border-amber-500/30 text-amber-50 hover:bg-amber-500/10 gap-2 pr-10 w-full sm:w-auto"
-      >
-        {syncing
-          ? <Loader2 className="size-4 animate-spin" />
-          : <CloudUpload className="size-4" />
-        }
-        {syncing ? "Sending…" : "Resend Queued"}
+      {pendingJobs.length > 0 ? (
+        <Button
+          onClick={handleSyncAll}
+          disabled={syncing}
+          variant="secondary"
+          className="relative border border-red-500/50 text-red-50 hover:bg-red-500/10 gap-2 pr-10 w-full sm:w-auto animate-pulse"
+        >
+          {syncing
+            ? <Loader2 className="size-4 animate-spin" />
+            : <CloudUpload className="size-4" />
+          }
+          {syncing ? "Sending…" : `Resend (${pendingJobs.length})`}
 
-        {pendingJobs.length > 0 && (
-          <span className="absolute top-1/2 -translate-y-1/2 right-2 px-1.5 min-w-[20px] h-5 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full animate-pulse shadow-lg shadow-red-900/50">
+          <span className="absolute top-1/2 -translate-y-1/2 right-2 px-1.5 min-w-[20px] h-5 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full shadow-lg shadow-red-900/50">
             {pendingJobs.length}
           </span>
-        )}
-      </Button>
+        </Button>
+      ) : (
+        <Button
+          onClick={handleSyncAll}
+          disabled={syncing}
+          variant="secondary"
+          className="border border-slate-500/30 text-slate-400 hover:bg-slate-500/10 gap-2 w-full sm:w-auto opacity-50"
+        >
+          <CloudUpload className="size-4" />
+          All Sent
+        </Button>
+      )}
 
       {/* ── Generate Report & Send Email ── */}
       <Button

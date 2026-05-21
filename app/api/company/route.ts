@@ -9,7 +9,7 @@ const schema = z.object({
   district: z.string().min(1),
   state: z.string().min(1),
   pincode: z.string().min(1),
-  overallConsumption: z.number(),
+  overallConsumption: z.union([z.string(), z.number()]).transform(String),
 });
 
 export async function GET() {

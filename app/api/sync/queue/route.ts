@@ -159,7 +159,7 @@ export async function POST(req: Request) {
     });
 
     console.log("[SYNC] Email sent successfully via Gmail to all admins");
-    return NextResponse.json({ ok: true, synced: { jobId }, emailId: emailResponse.data?.id });
+    return NextResponse.json({ ok: true, synced: { jobId } });
 
   } catch (err: any) {
     console.error("[SYNC] Email error:", err.message);

@@ -45,7 +45,7 @@ export default function CompanyPage() {
       setProfile({
         id: profile?.id || crypto.randomUUID(),
         ...form,
-        overallConsumption: Number(form.overallConsumption || 0),
+        overallConsumption: form.overallConsumption || "0",
         updatedAt: new Date().toISOString(),
       });
       toast.success("Company profile saved locally");
@@ -63,7 +63,7 @@ export default function CompanyPage() {
         <div><Label>District</Label><Input value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} /></div>
         <div><Label>State</Label><Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} /></div>
         <div><Label>Pincode</Label><Input value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} /></div>
-        <div><Label>Overall consumption</Label><Input type="number" value={form.overallConsumption} onChange={(e) => setForm({ ...form, overallConsumption: e.target.value })} /></div>
+        <div><Label>Overall Consumption (kW or text)</Label><Input type="text" placeholder="e.g., 100 kW or High" value={form.overallConsumption} onChange={(e) => setForm({ ...form, overallConsumption: e.target.value })} /></div>
         <div className="md:col-span-2"><Button onClick={() => void save()} disabled={loading}>{loading ? "Saving..." : "Save company"}</Button></div>
       </CardContent>
     </Card>

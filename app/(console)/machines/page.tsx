@@ -36,6 +36,7 @@ export default function MotorLoadPage() {
   const entries = useAppStore((state) => state.entries);
   const addEntryAction = useAppStore((state) => state.addEntry);
   const updateEntryAction = useAppStore((state) => state.updateEntry);
+  const deleteEntryAction = useAppStore((state) => state.deleteEntry);
 
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -160,6 +161,14 @@ export default function MotorLoadPage() {
     }));
   }
 
+  function handleDelete(id: string) {
+    if (confirm("Delete this motor load entry?")) {
+      deleteEntryAction(id);
+      toast.success("Motor Load deleted");
+      if (editingId === id) handleCancel();
+    }
+  }
+
   return (
     <div className="space-y-4">
       <Card><CardHeader><CardTitle>Add Motor Load details</CardTitle></CardHeader><CardContent className="space-y-4">
@@ -240,8 +249,9 @@ export default function MotorLoadPage() {
                     <div><span className="block text-[10px] uppercase text-slate-500">PF</span>{e.pf ?? "N/A"}</div>
                     <div><span className="block text-[10px] uppercase text-slate-500">KVAr</span>{e.kvar ?? "N/A"}</div>
                     <div className="col-span-2"><span className="block text-[10px] uppercase text-slate-500">Description</span>{e.description ?? "N/A"}</div>
-                    <div className="col-span-full pt-2 flex justify-end">
+                    <div className="col-span-full pt-4 flex justify-end gap-2">
                       <Button variant="secondary" size="sm" onClick={(ev) => { ev.stopPropagation(); handleEdit(e); }}>Edit</Button>
+                      <Button variant="destructive" size="sm" onClick={(ev) => { ev.stopPropagation(); handleDelete(e.id); }}>Delete</Button>
                     </div>
                   </div>
                 </td></tr>

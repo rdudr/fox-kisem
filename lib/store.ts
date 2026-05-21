@@ -23,7 +23,7 @@ export type CompanyProfile = {
   district: string;
   state: string;
   pincode: string;
-  overallConsumption: number;
+  overallConsumption: string | number;
   updatedAt: string;
 };
 
@@ -49,6 +49,8 @@ export type ZoneTag = {
   kvarD?: number | null;
   kvarQ?: number | null;
   kvarLeadLag?: string | null;
+  measuredKva?: number | null;
+  measuredKw?: number | null;
   totalPower?: number | null;
   createdAt: string;
 };
@@ -75,6 +77,8 @@ export type AreaTag = {
   kvarD?: number | null;
   kvarQ?: number | null;
   kvarLeadLag?: string | null;
+  measuredKva?: number | null;
+  measuredKw?: number | null;
   totalPower?: number | null;
   description?: string | null;
   createdAt: string;

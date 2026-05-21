@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import * as XLSX from "xlsx";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
@@ -9,6 +11,10 @@ export async function POST(req: Request) {
 
     if (!profile) {
       return NextResponse.json({ error: "No company profile provided" }, { status: 400 });
+    }
+
+    if (!recipients || (Array.isArray(recipients) && recipients.length === 0)) {
+      return NextResponse.json({ error: "No recipients provided" }, { status: 400 });
     }
 
     // ── Build the Excel workbook ─────────────────────────────────────────
@@ -21,21 +27,21 @@ export async function POST(req: Request) {
       ["District", profile.district],
       ["State", profile.state],
       ["Pincode", profile.pincode],
-      ["Overall Consumption (kW)", profile.overallConsumption],
-      ["Export Date", new Date().toLocaleString("en-IN")],
+      ["Overall Consumption", profile.overallConsumption],
+      ["Report Generated", new Date().toLocaleString("en-IN")],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(profileRows), "Company Profile");
 
     // Sheet 2: Plant Main Inputs
-    const zoneHeaders = ["Name","PQ Name","V1","V2","V3","Uhtd1","Uhtd2","Uhtd3","I1","I2","I3","Ihtd1","Ihtd2","Ihtd3","Power Factor","KVAr (D)","KVAr (Q)","KVAr Lead/Lag","Total Power (kW)","Description","Date"];
-    const zoneRows = (zones ?? []).map((z: any) => [z.name, z.pqName??"",(z.v1??""),(z.v2??""),(z.v3??""),(z.uhtd1??""),(z.uhtd2??""),(z.uhtd3??""),(z.i1??""),(z.i2??""),(z.i3??""),(z.ihtd1??""),(z.ihtd2??""),(z.ihtd3??""),(z.pf??""),(z.kvarD??""),(z.kvarQ??""),(z.kvarLeadLag??""),(z.totalPower??""),(z.description??""),new Date(z.createdAt).toLocaleString("en-IN")]);
+    const zoneHeaders = ["Name","PQ Name","V1","V2","V3","UTHD1","UTHD2","UTHD3","I1","I2","I3","ITHD1","ITHD2","ITHD3","Power Factor","KVAr (D)","KVAr (Q)","KVAr Lead/Lag","Total Power (kW)","Description","Date"];
+    const zoneRows = (zones ?? []).map((z: any) => [z.name, z.pqName??"",(z.v1??""),(z.v2??""),(z.v3??""),(z.uthd1??""),(z.uthd2??""),(z.uthd3??""),(z.i1??""),(z.i2??""),(z.i3??""),(z.ithd1??""),(z.ithd2??""),(z.ithd3??""),(z.pf??""),(z.kvarD??""),(z.kvarQ??""),(z.kvarLeadLag??""),(z.totalPower??""),(z.description??""),new Date(z.createdAt).toLocaleString("en-IN")]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([zoneHeaders, ...zoneRows]), "Plant Main Inputs");
 
     // Sheet 3: MCC/PCC Areas
-    const areaHeaders = ["Plant Main Input","MCC/PCC Name","PQ Name","V1","V2","V3","Uhtd1","Uhtd2","Uhtd3","I1","I2","I3","Ihtd1","Ihtd2","Ihtd3","Power Factor","KVAr (D)","KVAr (Q)","KVAr Lead/Lag","Total Power (kW)","Description","Date"];
+    const areaHeaders = ["Plant Main Input","MCC/PCC Name","PQ Name","V1","V2","V3","UTHD1","UTHD2","UTHD3","I1","I2","I3","ITHD1","ITHD2","ITHD3","Power Factor","KVAr (D)","KVAr (Q)","KVAr Lead/Lag","Total Power (kW)","Description","Date"];
     const areaRows = (areas ?? []).map((a: any) => {
       const zone = (zones ?? []).find((z: any) => z.id === a.zoneId);
-      return [(zone?.name??"Unknown"), a.name, (a.pqName??""),(a.v1??""),(a.v2??""),(a.v3??""),(a.uhtd1??""),(a.uhtd2??""),(a.uhtd3??""),(a.i1??""),(a.i2??""),(a.i3??""),(a.ihtd1??""),(a.ihtd2??""),(a.ihtd3??""),(a.pf??""),(a.kvarD??""),(a.kvarQ??""),(a.kvarLeadLag??""),(a.totalPower??""),(a.description??""),new Date(a.createdAt).toLocaleString("en-IN")];
+      return [(zone?.name??"Unknown"), a.name, (a.pqName??""),(a.v1??""),(a.v2??""),(a.v3??""),(a.uthd1??""),(a.uthd2??""),(a.uthd3??""),(a.i1??""),(a.i2??""),(a.i3??""),(a.ithd1??""),(a.ithd2??""),(a.ithd3??""),(a.pf??""),(a.kvarD??""),(a.kvarQ??""),(a.kvarLeadLag??""),(a.totalPower??""),(a.description??""),new Date(a.createdAt).toLocaleString("en-IN")];
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([areaHeaders, ...areaRows]), "MCC-PCC Areas");
 
@@ -52,57 +58,65 @@ export async function POST(req: Request) {
     const xlsxBuffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
     const today = new Date();
     const ddmm = `${String(today.getDate()).padStart(2,"0")}${String(today.getMonth()+1).padStart(2,"0")}`;
-    const filename = `${(profile.companyName??"export").replace(/\s+/g,"_")}_${ddmm}.xlsx`;
+    const filename = `${(profile.companyName??"report").replace(/\s+/g,"_")}_${ddmm}.xlsx`;
 
-    // ── Compose address ──────────────────────────────────────────────────
+    // ── Compose message ──────────────────────────────────────────────────
     const addressParts = [profile.area, profile.district, profile.state, profile.pincode].filter(Boolean);
     const address = addressParts.join(", ") || "N/A";
     const finalTime = today.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-    const user = reporterName || "the field engineer";
-    const company = profile.companyName || "the company";
+    const engineer = reporterName || "Field Engineer";
+    const company = profile.companyName || "Company";
 
-    const emailBody = `Dear Team,
+    const emailSubject = `Industrial Data Report — ${company}`;
+    const emailBody = `<div style="font-family: sans-serif; color: #333; line-height: 1.6;">
+  <h2 style="color: #0369a1;">Fox Kisem - Industrial Data Collection Report</h2>
+  <p>Dear Admin Team,</p>
+  <p><strong>${engineer}</strong> has successfully collected and compiled the industrial data for <strong>${company}</strong>, located at:</p>
+  <p style="padding-left: 20px; color: #666;"><em>${address}</em></p>
+  <p>The comprehensive motor load analysis and equipment data collection was completed on <strong>${finalTime}</strong>.</p>
+  <p><strong>Report Summary:</strong></p>
+  <ul style="color: #666;">
+    <li>Zones Recorded: ${zones.length}</li>
+    <li>MCC/PCC Areas: ${areas.length}</li>
+    <li>Motor Load Entries: ${entries.length}</li>
+  </ul>
+  <p>Please find the detailed Excel report attached for your reference and further analysis.</p>
+  <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+  <p style="font-size: 12px; color: #999;">
+    Fox Kisem — Industrial Data Collection System<br>
+    IITGN Kisem Laboratory
+  </p>
+</div>`;
 
-I am sending this mail to inform you that ${user} has successfully read and collected the industrial data of ${company}, located at ${address}.
+    // ── Send email via Resend ────────────────────────────────────────────
+    const recipientList = Array.isArray(recipients) ? recipients : [recipients];
 
-The final report regarding the motor load analysis was completed on ${finalTime}.
-
-Please find the attached data and report below for your reference and further review.
-
-Best regards,
-Fox Kisem — Industrial Data Collection System
-IITGN Kisem Lab`;
-
-    // ── Send email ───────────────────────────────────────────────────────
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST ?? "smtp.gmail.com",
-      port: Number(process.env.SMTP_PORT ?? 587),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    const to = Array.isArray(recipients) ? recipients.join(", ") : recipients;
-
-    await transporter.sendMail({
-      from: `"Fox Kisem" <${process.env.SMTP_USER}>`,
-      to,
-      subject: `Motor Load Report — ${company} (${ddmm})`,
-      text: emailBody,
+    const response = await resend.emails.send({
+      from: "Fox Kisem <noreply@resend.dev>",
+      to: recipientList,
+      subject: emailSubject,
+      html: emailBody,
       attachments: [
         {
           filename,
           content: xlsxBuffer,
-          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         },
       ],
     });
 
-    return NextResponse.json({ ok: true, message: `Report sent to ${to}` });
+    if (response.error) {
+      console.error("Resend API error:", response.error);
+      return NextResponse.json({ error: response.error.message || "Failed to send email" }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      message: `Report sent successfully`,
+      recipients: recipientList,
+      id: response.data?.id
+    });
   } catch (err: any) {
-    console.error("Email send error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Report generation error:", err);
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }
 }

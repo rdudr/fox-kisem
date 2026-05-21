@@ -216,17 +216,17 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         onClose={() => setMailModalStatus("idle")}
       />
 
-      {/* ── Save Progress ── */}
+      {/* ── Local Save ── */}
       <Button
-        onClick={() => toast.success("Progress saved securely to device!")}
+        onClick={() => toast.success("All data saved securely to device!")}
         variant="secondary"
         className="border-cyan-500/30 text-cyan-50 hover:bg-cyan-500/10 gap-2 w-full sm:w-auto"
       >
         <CheckCircle2 className="size-4" />
-        Save Progress
+        Save to Device
       </Button>
 
-      {/* ── Sync pending jobs ── */}
+      {/* ── Retry failed submissions ── */}
       <Button
         onClick={handleSyncAll}
         disabled={syncing}
@@ -237,7 +237,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
           ? <Loader2 className="size-4 animate-spin" />
           : <CloudUpload className="size-4" />
         }
-        {syncing ? "Syncing…" : "Sync Offline Data"}
+        {syncing ? "Sending…" : "Resend Queued"}
 
         {pendingJobs.length > 0 && (
           <span className="absolute top-1/2 -translate-y-1/2 right-2 px-1.5 min-w-[20px] h-5 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full animate-pulse shadow-lg shadow-red-900/50">
@@ -246,7 +246,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         )}
       </Button>
 
-      {/* ── Export & Complete ── */}
+      {/* ── Generate Report & Send Email ── */}
       <Button
         onClick={handleExportAndComplete}
         disabled={exporting}
@@ -256,7 +256,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
           ? <Loader2 className="size-4 animate-spin" />
           : <Download className="size-4" />
         }
-        {exporting ? "Downloading…" : "Download & Send"}
+        {exporting ? "Generating…" : "Submit Report"}
       </Button>
 
       {/* ── Missing company modal ── */}
@@ -292,7 +292,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
         </div>
       )}
 
-      {/* ── Success & Logout Modal ── */}
+      {/* ── Report Completion Modal ── */}
       {showCompleteModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
           <div className="bg-slate-900 border border-white/10 p-6 rounded-xl shadow-2xl max-w-sm w-full text-center">
@@ -301,34 +301,33 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
                 <CheckCircle2 className="size-10 text-emerald-400" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Report Saved!</h3>
+            <h3 className="text-xl font-bold text-white mb-2">Report Generated</h3>
             <p className="text-sm text-slate-300 mb-6">
-              The Excel file has been downloaded.
-              {lastSyncResult === "synced" && " The email has been sent successfully."}
-              {lastSyncResult === "queued" && " Email is queued. Use 'Sync Offline Data' when connected."}
-              {lastSyncResult === "offline" && " You are offline. Email is queued for later sync."}
+              Excel file downloaded to device.
+              {lastSyncResult === "synced" && " ✓ Email sent to admin team."}
+              {lastSyncResult === "queued" && " Report queued - will send when online. Use 'Resend Queued' to retry now."}
+              {lastSyncResult === "offline" && " You're offline. Report is queued and will be sent when you reconnect."}
             </p>
             <div className="flex flex-col gap-3">
-              <Button 
-                onClick={handleLogoutAction} 
-                className="w-full bg-red-600 hover:bg-red-500 text-white gap-2 font-medium"
+              <Button
+                onClick={handleLogoutAction}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-white gap-2 font-medium"
               >
-                <AlertTriangle className="size-4 hidden" />
-                Logout Safely
+                Logout
               </Button>
-              <Button 
-                onClick={() => { wipeData(); setShowCompleteModal(false); router.push("/company"); }} 
-                variant="secondary" 
+              <Button
+                onClick={() => { wipeData(); setShowCompleteModal(false); router.push("/company"); }}
+                variant="secondary"
                 className="w-full border border-white/20 text-white bg-white/5 hover:bg-white/10"
               >
-                Start New Report
+                New Report
               </Button>
-              <Button 
-                onClick={() => setShowCompleteModal(false)} 
-                variant="ghost" 
+              <Button
+                onClick={() => setShowCompleteModal(false)}
+                variant="ghost"
                 className="w-full text-slate-400 hover:text-white"
               >
-                Close & Keep Editing
+                Continue Editing
               </Button>
             </div>
           </div>

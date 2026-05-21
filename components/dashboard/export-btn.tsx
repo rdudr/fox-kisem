@@ -128,32 +128,23 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
       payload,
     });
 
-    // 3. If internet is available, sync immediately (saves to DB + sends email)
-    const isOnline = typeof navigator !== "undefined" && navigator.onLine;
-    if (isOnline) {
-      const serverBase = getServerBase();
-      if (serverBase) {
-        setMailModalStatus("sending");
-        const result = await trySyncJob(jobId, payload);
-        if (result.ok) {
-          setLastSyncResult("synced");
-          setMailModalStatus("success");
-          setMailErrorMessage(undefined);
-          toast.success("Report emailed to admin team ✓");
-        } else {
-          setLastSyncResult("queued");
-          setMailErrorMessage(result.error);
-          setMailModalStatus("error");
-        }
-        setTimeout(() => setMailModalStatus("idle"), 4000);
-      } else {
-        setLastSyncResult("queued");
-        toast.info("No server configured. Report queued for later sync.");
-      }
+    // 3. Always attempt sync immediately (don't rely on navigator.onLine)
+    const serverBase = getServerBase();
+    console.log("[EXPORT] Attempting sync to:", serverBase);
+    setMailModalStatus("sending");
+    const result = await trySyncJob(jobId, payload);
+    console.log("[EXPORT] Sync result:", result);
+    if (result.ok) {
+      setLastSyncResult("synced");
+      setMailModalStatus("success");
+      setMailErrorMessage(undefined);
+      toast.success("Report emailed to admin team ✓");
     } else {
-      setLastSyncResult("offline");
-      toast.info("Offline. Report queued — will email when you tap 'Sync'.");
+      setLastSyncResult("queued");
+      setMailErrorMessage(result.error);
+      setMailModalStatus("error");
     }
+    setTimeout(() => setMailModalStatus("idle"), 4000);
 
     setExporting(false);
     setShowCompleteModal(true); // Show the success/logout modal!

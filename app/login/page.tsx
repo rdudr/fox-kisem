@@ -8,11 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuthStore } from "@/lib/auth-store";
+import { useAppStore } from "@/lib/store";
+import { FileText } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const profile = useAppStore((s) => s.profile);
+  const entries = useAppStore((s) => s.entries);
+  const zones = useAppStore((s) => s.zones);
+  const areas = useAppStore((s) => s.areas);
+  const wipeData = useAppStore((s) => s.wipeData);
+
+  const hasSavedProgress = !!profile?.companyName || entries.length > 0 || zones.length > 0 || areas.length > 0;
+  const lastUpdated = profile?.updatedAt
+    ? new Date(profile.updatedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+    : null;
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -105,6 +117,44 @@ export default function LoginPage() {
             </div>
           )}
         </CardHeader>
+
+        {hasSavedProgress && (
+          <div className="px-6 pb-4">
+            <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4">
+              <div className="flex items-start gap-3">
+                <FileText className="size-5 text-cyan-300 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-cyan-100">Continue previous report?</div>
+                  {profile?.companyName && (
+                    <div className="text-xs text-slate-300 mt-1">
+                      Company: <span className="text-cyan-300">{profile.companyName}</span>
+                    </div>
+                  )}
+                  {lastUpdated && (
+                    <div className="text-[10px] text-slate-400 mt-1">Last updated: {lastUpdated}</div>
+                  )}
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    {entries.length} entries, {zones.length} zones, {areas.length} MCC/PCC
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        if (confirm("Delete all saved progress and start fresh?")) wipeData();
+                      }}
+                      className="text-xs text-red-300 hover:bg-red-500/10 px-3"
+                    >
+                      Start New
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <CardContent>
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">

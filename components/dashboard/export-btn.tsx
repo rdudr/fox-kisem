@@ -214,8 +214,8 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
 
   const handleLogoutAction = async () => {
     try { await fetch("/api/auth/logout", { method: "POST" }); } catch {}
-    // Clear the active form data so next login starts fresh
-    wipeData();
+    // IMPORTANT: Do NOT wipe data on logout — preserve in-progress reports
+    // Data will only be wiped if user explicitly chooses "Start New Report"
     authLogout();
     router.push("/login");
   };

@@ -233,8 +233,8 @@ export default function MotorLoadPage() {
                 <td className="px-2 py-2 font-mono">{e.machineTag}</td>
                 <td className="px-2 py-2">{e.ratedKw}</td>
                 <td className="px-2 py-2">{e.measuredKw}</td>
-                <td className="px-2 py-2 text-cyan-400">{e.calculatedPower.toFixed(2)}</td>
-                <td className={cn("px-2 py-2 font-bold", e.loadFactor > 1.3 ? "text-red-500" : "text-emerald-400")}>{e.loadFactor.toFixed(3)}</td>
+                <td className="px-2 py-2 text-cyan-400">{Number(e.calculatedPower ?? 0).toFixed(2)}</td>
+                <td className={cn("px-2 py-2 font-bold", (e.loadFactor ?? 0) > 1.3 ? "text-red-500" : "text-emerald-400")}>{Number(e.loadFactor ?? 0).toFixed(3)}</td>
                 <td className="px-2 py-2 text-[10px] text-slate-500">{new Date(e.createdAt).toLocaleString()}</td>
               </tr>
               {expanded === e.id && (

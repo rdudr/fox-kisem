@@ -11,10 +11,10 @@ export default function DashboardPage() {
   const areas   = useAppStore((s) => s.areas);
   const entries = useAppStore((s) => s.entries);
 
-  const totalPower = entries.reduce((acc, e) => acc + e.calculatedPower, 0);
+  const totalPower = entries.reduce((acc, e) => acc + (e.calculatedPower ?? 0), 0);
 
   const maxEquipment = entries.reduce<typeof entries[0] | null>(
-    (m, e) => (!m || e.calculatedPower > m.calculatedPower ? e : m),
+    (m, e) => (!m || (e.calculatedPower ?? 0) > (m.calculatedPower ?? 0) ? e : m),
     null
   );
 
@@ -22,7 +22,7 @@ export default function DashboardPage() {
     name: a.name,
     total: entries
       .filter((e) => e.areaId === a.id)
-      .reduce((acc, e) => acc + e.calculatedPower, 0),
+      .reduce((acc, e) => acc + (e.calculatedPower ?? 0), 0),
   }));
   const maxArea = areaTotals.reduce<typeof areaTotals[0] | null>(
     (m, a) => (!m || a.total > m.total ? a : m),
@@ -57,7 +57,7 @@ export default function DashboardPage() {
                   Zone: {zones.find(z => z.id === areas.find(a => a.id === maxEquipment.areaId)?.zoneId)?.name || "N/A"} —{" "}
                   Area: {areas.find(a => a.id === maxEquipment.areaId)?.name || "N/A"}
                 </p>
-                <p className="text-2xl font-semibold text-cyan-300">{maxEquipment.calculatedPower.toFixed(2)} kW</p>
+                <p className="text-2xl font-semibold text-cyan-300">{Number(maxEquipment.calculatedPower ?? 0).toFixed(2)} kW</p>
               </>
             ) : <p className="text-slate-400">No entries yet</p>}
           </CardContent>

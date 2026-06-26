@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function ApfcPage() {
   const [form, setForm] = useState({
@@ -32,7 +33,7 @@ export default function ApfcPage() {
     if (!form.stage) return toast.error("Stage is required");
 
     const payload = {
-      id: crypto.randomUUID(),
+      id: editingId || crypto.randomUUID(),
       stage: form.stage ? Number(form.stage) : undefined,
       ratedCapacitorValue: form.ratedCapacitorValue ? Number(form.ratedCapacitorValue) : undefined,
       voltage: form.voltage ? Number(form.voltage) : undefined,
@@ -41,7 +42,12 @@ export default function ApfcPage() {
       iB: form.iB ? Number(form.iB) : undefined,
       remark: form.remark || undefined,
       description: form.description || undefined,
-      createdAt: new Date().toISOString(),
+      recordedBy: editingId
+        ? (apfcs.find(a => a.id === editingId)?.recordedBy || useAuthStore.getState().displayName || "Unknown")
+        : (useAuthStore.getState().displayName || "Unknown"),
+      createdAt: editingId
+        ? (apfcs.find(a => a.id === editingId)?.createdAt || new Date().toISOString())
+        : new Date().toISOString(),
     };
 
     if (editingId) {

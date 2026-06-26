@@ -58,16 +58,16 @@ export async function POST(req: Request) {
     for (const z of (zones ?? [])) {
       await prisma.zoneTag.upsert({
         where: { id: z.id },
-        create: { id: z.id, name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, recordingNameId: z.recordingNameId, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, uthd1: z.uthd1, uthd2: z.uthd2, uthd3: z.uthd3, ithd1: z.ithd1, ithd2: z.ithd2, ithd3: z.ithd3, i1: z.i1, i2: z.i2, i3: z.i3 },
-        update: { name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, recordingNameId: z.recordingNameId, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, uthd1: z.uthd1, uthd2: z.uthd2, uthd3: z.uthd3, ithd1: z.ithd1, ithd2: z.ithd2, ithd3: z.ithd3, i1: z.i1, i2: z.i2, i3: z.i3 },
+        create: { id: z.id, name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, recordingNameId: z.recordingNameId, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, uthd1: z.uthd1, uthd2: z.uthd2, uthd3: z.uthd3, ithd1: z.ithd1, ithd2: z.ithd2, ithd3: z.ithd3, i1: z.i1, i2: z.i2, i3: z.i3, recordedBy: z.recordedBy, createdAt: z.createdAt ? new Date(z.createdAt) : undefined },
+        update: { name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, recordingNameId: z.recordingNameId, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, uthd1: z.uthd1, uthd2: z.uthd2, uthd3: z.uthd3, ithd1: z.ithd1, ithd2: z.ithd2, ithd3: z.ithd3, i1: z.i1, i2: z.i2, i3: z.i3, recordedBy: z.recordedBy, createdAt: z.createdAt ? new Date(z.createdAt) : undefined },
       });
     }
 
     for (const a of (areas ?? [])) {
       await prisma.areaTag.upsert({
         where: { id: a.id },
-        create: { id: a.id, zoneId: a.zoneId, name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, recordingNameId: a.recordingNameId, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, uthd1: a.uthd1, uthd2: a.uthd2, uthd3: a.uthd3, ithd1: a.ithd1, ithd2: a.ithd2, ithd3: a.ithd3, i1: a.i1, i2: a.i2, i3: a.i3 },
-        update: { name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, recordingNameId: a.recordingNameId, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, uthd1: a.uthd1, uthd2: a.uthd2, uthd3: a.uthd3, ithd1: a.ithd1, ithd2: a.ithd2, ithd3: a.ithd3, i1: a.i1, i2: a.i2, i3: a.i3 },
+        create: { id: a.id, zoneId: a.zoneId, name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, recordingNameId: a.recordingNameId, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, uthd1: a.uthd1, uthd2: a.uthd2, uthd3: a.uthd3, ithd1: a.ithd1, ithd2: a.ithd2, ithd3: a.ithd3, i1: a.i1, i2: a.i2, i3: a.i3, recordedBy: a.recordedBy, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
+        update: { name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, recordingNameId: a.recordingNameId, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, uthd1: a.uthd1, uthd2: a.uthd2, uthd3: a.uthd3, ithd1: a.ithd1, ithd2: a.ithd2, ithd3: a.ithd3, i1: a.i1, i2: a.i2, i3: a.i3, recordedBy: a.recordedBy, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
       });
     }
 
@@ -91,12 +91,12 @@ export async function POST(req: Request) {
           vfdFrequency: e.vfdFrequency, ratedKw: e.ratedKw, ratedHp: e.ratedHp,
           voltage: e.voltage, current: e.current, kva: e.kva, pf: e.pf, kvar: e.kvar,
           measuredKw: e.measuredKw, calculatedPower: e.calculatedPower, loadFactor: e.loadFactor,
-          description: e.description, createdById: systemUser.id,
+          description: e.description, recordedBy: e.recordedBy, createdAt: e.createdAt ? new Date(e.createdAt) : undefined, createdById: systemUser.id,
         },
         update: {
           machineTag: e.machineTag, starterType: e.starterType, vfdFrequency: e.vfdFrequency,
           ratedKw: e.ratedKw, measuredKw: e.measuredKw, calculatedPower: e.calculatedPower,
-          loadFactor: e.loadFactor,
+          loadFactor: e.loadFactor, recordedBy: e.recordedBy, createdAt: e.createdAt ? new Date(e.createdAt) : undefined,
         },
       });
     }
@@ -104,8 +104,8 @@ export async function POST(req: Request) {
     for (const a of (apfcs ?? [])) {
       await prisma.apfcTag.upsert({
         where: { id: a.id },
-        create: { id: a.id, stage: a.stage, ratedCapacitorValue: a.ratedCapacitorValue, voltage: a.voltage, iR: a.iR, iY: a.iY, iB: a.iB, remark: a.remark, description: a.description },
-        update: { stage: a.stage, ratedCapacitorValue: a.ratedCapacitorValue, voltage: a.voltage, iR: a.iR, iY: a.iY, iB: a.iB, remark: a.remark, description: a.description },
+        create: { id: a.id, stage: a.stage, ratedCapacitorValue: a.ratedCapacitorValue, voltage: a.voltage, iR: a.iR, iY: a.iY, iB: a.iB, remark: a.remark, description: a.description, recordedBy: a.recordedBy, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
+        update: { stage: a.stage, ratedCapacitorValue: a.ratedCapacitorValue, voltage: a.voltage, iR: a.iR, iY: a.iY, iB: a.iB, remark: a.remark, description: a.description, recordedBy: a.recordedBy, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
       });
     }
 

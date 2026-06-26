@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function MccPccPage() {
   
@@ -71,7 +72,7 @@ export default function MccPccPage() {
     if (!form.name) return toast.error("MCC/PCC name required");
 
     const payload = {
-      id: crypto.randomUUID(),
+      id: editingId || crypto.randomUUID(),
       zoneId: form.zoneId,
       name: form.name,
       v1: form.v1 ? Number(form.v1) : undefined,
@@ -94,7 +95,12 @@ export default function MccPccPage() {
       pqName: form.pqName || undefined,
       recordingNameId: form.recordingNameId || undefined,
       description: form.description || undefined,
-      createdAt: new Date().toISOString(),
+      recordedBy: editingId
+        ? (areas.find(a => a.id === editingId)?.recordedBy || useAuthStore.getState().displayName || "Unknown")
+        : (useAuthStore.getState().displayName || "Unknown"),
+      createdAt: editingId
+        ? (areas.find(a => a.id === editingId)?.createdAt || new Date().toISOString())
+        : new Date().toISOString(),
     };
     
     if (editingId) {

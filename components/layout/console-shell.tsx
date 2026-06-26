@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { UploadButton } from "@/components/layout/upload-button";
 import { cn } from "@/lib/utils";
 import { Building2, FileSpreadsheet, LayoutDashboard, MapPinned, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -147,6 +148,7 @@ export function ConsoleShell({
               >
                 <Menu className="size-5" />
               </button>
+              <UploadButton />
               <LogoutButton />
             </div>
           </header>

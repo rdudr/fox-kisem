@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
+import { useAuthStore } from "@/lib/auth-store";
 import { StarterType } from "@prisma/client";
 
 export default function MotorLoadPage() {
@@ -74,7 +75,7 @@ export default function MotorLoadPage() {
     if (!entry.ratedKw) return toast.error("Rated kW required");
 
     const payload = {
-      id: crypto.randomUUID(),
+      id: editingId || crypto.randomUUID(),
       areaId: entry.areaId,
       machineTag: entry.machineTag,
       starterType: entry.starterType as StarterType || "DOL",
@@ -90,7 +91,12 @@ export default function MotorLoadPage() {
       calculatedPower: calculatedPower,
       loadFactor: loadFactor,
       description: entry.description || undefined,
-      createdAt: new Date().toISOString(),
+      recordedBy: editingId
+        ? (entries.find(e => e.id === editingId)?.recordedBy || useAuthStore.getState().displayName || "Unknown")
+        : (useAuthStore.getState().displayName || "Unknown"),
+      createdAt: editingId
+        ? (entries.find(e => e.id === editingId)?.createdAt || new Date().toISOString())
+        : new Date().toISOString(),
       createdById: "local-user",
     };
     

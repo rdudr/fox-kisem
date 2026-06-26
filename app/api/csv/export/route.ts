@@ -37,13 +37,13 @@ export async function GET() {
     "Name", "PQ Name", "Recording ID",
     "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3", 
     "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3", 
-    "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Time"
+    "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Recorded By", "Time"
   ];
   const zoneDataRows = zones.map(z => [
     z.name, z.pqName || "", z.recordingNameId || "",
     f2(z.v1), f2(z.v2), f2(z.v3), f2(z.uthd1), f2(z.uthd2), f2(z.uthd3),
     f2(z.i1), f2(z.i2), f2(z.i3), f2(z.ithd1), f2(z.ithd2), f2(z.ithd3),
-    f3(z.pf), f2(z.kvarD), f2(z.kvarQ), z.kvarLeadLag || "", f2(z.totalPower), z.description || "",
+    f3(z.pf), f2(z.kvarD), f2(z.kvarQ), z.kvarLeadLag || "", f2(z.totalPower), z.description || "", z.recordedBy || "Unknown",
     new Date(z.createdAt).toLocaleString()
   ]);
   const ws1 = XLSX.utils.aoa_to_sheet([...metadataRows, zoneHeaders, ...zoneDataRows]);
@@ -53,13 +53,13 @@ export async function GET() {
     "Plant Main Input", "MCC/PCC Name", "PQ Name", "Recording ID",
     "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3", 
     "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3", 
-    "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Time"
+    "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Recorded By", "Time"
   ];
   const areaDataRows = areas.map(a => [
     a.zone?.name || "", a.name, a.pqName || "", a.recordingNameId || "",
     f2(a.v1), f2(a.v2), f2(a.v3), f2(a.uthd1), f2(a.uthd2), f2(a.uthd3),
     f2(a.i1), f2(a.i2), f2(a.i3), f2(a.ithd1), f2(a.ithd2), f2(a.ithd3),
-    f3(a.pf), f2(a.kvarD), f2(a.kvarQ), a.kvarLeadLag || "", f2(a.totalPower), a.description || "",
+    f3(a.pf), f2(a.kvarD), f2(a.kvarQ), a.kvarLeadLag || "", f2(a.totalPower), a.description || "", a.recordedBy || "Unknown",
     new Date(a.createdAt).toLocaleString()
   ]);
   const ws2 = XLSX.utils.aoa_to_sheet([areaHeaders, ...areaDataRows]);
@@ -69,13 +69,13 @@ export async function GET() {
     "Plant Main Input", "MCC/PCC", "MachineTag", "StarterType", 
     "RatedKw", "RatedHp", "Voltage(V)", "Current(I)", 
     "KVA", "PF", "KVAr", "MeasuredKw", "CalculatedPower(kW)", 
-    "LoadFactor", "Description", "Time"
+    "LoadFactor", "Description", "Recorded By", "Time"
   ];
   const entryDataRows = entries.map(e => [
     e.area?.zone?.name || "", e.area?.name || "", e.machineTag || "", e.starterType || "",
     f2(e.ratedKw), f2(e.ratedHp), f2(e.voltage), f2(e.current),
     f2(e.kva), f3(e.pf), f2(e.kvar), f2(e.measuredKw), f2(e.calculatedPower),
-    f3(e.loadFactor), e.description || "", new Date(e.createdAt).toLocaleString()
+    f3(e.loadFactor), e.description || "", e.recordedBy || "Unknown", new Date(e.createdAt).toLocaleString()
   ]);
   const ws3 = XLSX.utils.aoa_to_sheet([entryHeaders, ...entryDataRows]);
 

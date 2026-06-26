@@ -52,6 +52,7 @@ export type ZoneTag = {
   measuredKva?: number | null;
   measuredKw?: number | null;
   totalPower?: number | null;
+  recordedBy?: string | null;
   createdAt: string;
 };
 
@@ -81,6 +82,7 @@ export type AreaTag = {
   measuredKw?: number | null;
   totalPower?: number | null;
   description?: string | null;
+  recordedBy?: string | null;
   createdAt: string;
 };
 
@@ -101,6 +103,7 @@ export type Entry = {
   calculatedPower: number;
   loadFactor: number;
   description?: string | null;
+  recordedBy?: string | null;
   createdAt: string;
   createdById: string;
 };
@@ -115,6 +118,7 @@ export type ApfcTag = {
   iB?: number | null;
   remark?: string | null;
   description?: string | null;
+  recordedBy?: string | null;
   createdAt: string;
 };
 

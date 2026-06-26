@@ -33,8 +33,8 @@ export async function POST(req: Request) {
     for (const z of (zones ?? [])) {
       await prisma.zoneTag.upsert({
         where: { id: z.id },
-        create: { id: z.id, name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag },
-        update: { name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag },
+        create: { id: z.id, name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, recordedBy: z.recordedBy, createdAt: z.createdAt ? new Date(z.createdAt) : undefined },
+        update: { name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, recordedBy: z.recordedBy, createdAt: z.createdAt ? new Date(z.createdAt) : undefined },
       });
     }
 
@@ -42,8 +42,8 @@ export async function POST(req: Request) {
     for (const a of (areas ?? [])) {
       await prisma.areaTag.upsert({
         where: { id: a.id },
-        create: { id: a.id, zoneId: a.zoneId, name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag },
-        update: { name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag },
+        create: { id: a.id, zoneId: a.zoneId, name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, recordedBy: a.recordedBy, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
+        update: { name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, recordedBy: a.recordedBy, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
       });
     }
 
@@ -79,6 +79,8 @@ export async function POST(req: Request) {
           calculatedPower: e.calculatedPower,
           loadFactor: e.loadFactor,
           description: e.description,
+          recordedBy: e.recordedBy,
+          createdAt: e.createdAt ? new Date(e.createdAt) : undefined,
           createdById: systemUser.id,
         },
         update: {
@@ -88,6 +90,8 @@ export async function POST(req: Request) {
           measuredKw: e.measuredKw,
           calculatedPower: e.calculatedPower,
           loadFactor: e.loadFactor,
+          recordedBy: e.recordedBy,
+          createdAt: e.createdAt ? new Date(e.createdAt) : undefined,
         },
       });
     }

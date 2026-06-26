@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function PlantMainInputPage() {
   const [form, setForm] = useState({
@@ -62,7 +63,7 @@ export default function PlantMainInputPage() {
     if (!form.name) return toast.error("Name is required");
 
     const payload = {
-      id: crypto.randomUUID(),
+      id: editingId || crypto.randomUUID(),
       name: form.name,
       v1: form.v1 ? Number(form.v1) : undefined,
       v2: form.v2 ? Number(form.v2) : undefined,
@@ -84,7 +85,12 @@ export default function PlantMainInputPage() {
       pqName: form.pqName || undefined,
       recordingNameId: form.recordingNameId || undefined,
       description: form.description || undefined,
-      createdAt: new Date().toISOString(),
+      recordedBy: editingId
+        ? (zones.find(z => z.id === editingId)?.recordedBy || useAuthStore.getState().displayName || "Unknown")
+        : (useAuthStore.getState().displayName || "Unknown"),
+      createdAt: editingId
+        ? (zones.find(z => z.id === editingId)?.createdAt || new Date().toISOString())
+        : new Date().toISOString(),
     };
     
     if (editingId) {

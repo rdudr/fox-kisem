@@ -36,6 +36,7 @@ model CompanyProfile {
 model ZoneTag {
   id          String   @id @default(cuid())
   name        String
+  recordedBy  String?
   
   v1          Float?
   v2          Float?
@@ -68,6 +69,7 @@ model AreaTag {
   zoneId      String
   zone        ZoneTag  @relation(fields: [zoneId], references: [id], onDelete: Cascade)
   name        String
+  recordedBy  String?
   
   pqName      String?
   v1          Float?
@@ -114,6 +116,7 @@ model Entry {
   calculatedPower Float
   loadFactor      Float
   description     String?
+  recordedBy      String?
   
   createdAt       DateTime    @default(now())
   createdById     String
@@ -132,6 +135,7 @@ model ApfcTag {
   iB                 Float?
   remark             String?
   description        String?
+  recordedBy         String?
   createdAt          DateTime @default(now())
 }
 

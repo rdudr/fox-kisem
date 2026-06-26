@@ -36,7 +36,7 @@ export function buildWorkbook(
     "I1", "I2", "I3",
     "Ithd1", "Ithd2", "Ithd3",
     "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag",
-    "Total Power (kW)", "Description", "Date",
+    "Total Power (kW)", "Description", "Recorded By", "Date",
   ];
   const zoneRows = zones.map((z) => [
     z.name, z.pqName ?? "", z.recordingNameId ?? "",
@@ -45,7 +45,7 @@ export function buildWorkbook(
     z.i1 ?? "", z.i2 ?? "", z.i3 ?? "",
     z.ithd1 ?? "", z.ithd2 ?? "", z.ithd3 ?? "",
     z.pf ?? "", z.kvarD ?? "", z.kvarQ ?? "", z.kvarLeadLag ?? "",
-    z.totalPower ?? "", z.description ?? "",
+    z.totalPower ?? "", z.description ?? "", z.recordedBy ?? "Unknown",
     new Date(z.createdAt).toLocaleString("en-IN"),
   ]);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([zoneHeaders, ...zoneRows]), "Plant Main Inputs");
@@ -58,7 +58,7 @@ export function buildWorkbook(
     "I1", "I2", "I3",
     "Ithd1", "Ithd2", "Ithd3",
     "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag",
-    "Total Power (kW)", "Description", "Date",
+    "Total Power (kW)", "Description", "Recorded By", "Date",
   ];
   const areaRows = areas.map((a) => [
     zones.find((z) => z.id === a.zoneId)?.name ?? "Unknown",
@@ -68,7 +68,7 @@ export function buildWorkbook(
     a.i1 ?? "", a.i2 ?? "", a.i3 ?? "",
     a.ithd1 ?? "", a.ithd2 ?? "", a.ithd3 ?? "",
     a.pf ?? "", a.kvarD ?? "", a.kvarQ ?? "", a.kvarLeadLag ?? "",
-    a.totalPower ?? "", a.description ?? "",
+    a.totalPower ?? "", a.description ?? "", a.recordedBy ?? "Unknown",
     new Date(a.createdAt).toLocaleString("en-IN"),
   ]);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([areaHeaders, ...areaRows]), "MCC-PCC Areas");
@@ -79,7 +79,7 @@ export function buildWorkbook(
     "Rated kW", "Rated HP", "Voltage (V)", "Current (A)",
     "KVA", "Power Factor", "KVAr",
     "Measured kW", "Calculated Power (kW)", "Load Factor",
-    "Description", "Date",
+    "Description", "Recorded By", "Date",
   ];
   const entryRows = entries.map((e) => {
     const area = areas.find((a) => a.id === e.areaId);
@@ -93,7 +93,7 @@ export function buildWorkbook(
       e.measuredKw,
       Number(e.calculatedPower).toFixed(2),
       Number(e.loadFactor).toFixed(3),
-      e.description ?? "",
+      e.description ?? "", e.recordedBy ?? "Unknown",
       new Date(e.createdAt).toLocaleString("en-IN"),
     ];
   });
@@ -103,12 +103,12 @@ export function buildWorkbook(
   const apfcHeaders = [
     "Stage", "Rated Capacitor Value", "Voltage",
     "I-R", "I-Y", "I-B",
-    "Remark", "Description", "Date"
+    "Remark", "Description", "Recorded By", "Date"
   ];
   const apfcRows = apfcs.map((a) => [
     a.stage ?? "", a.ratedCapacitorValue ?? "", a.voltage ?? "",
     a.iR ?? "", a.iY ?? "", a.iB ?? "",
-    a.remark ?? "", a.description ?? "",
+    a.remark ?? "", a.description ?? "", a.recordedBy ?? "Unknown",
     new Date(a.createdAt).toLocaleString("en-IN")
   ]);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([apfcHeaders, ...apfcRows]), "APFC");

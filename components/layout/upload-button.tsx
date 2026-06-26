@@ -62,6 +62,67 @@ export function UploadButton() {
     reader.readAsArrayBuffer(file);
   };
 
+  // Helper to parse dates in various formats safely
+  const parseExcelDate = (val: any): string => {
+    if (val === undefined || val === null || val === "") {
+      return new Date().toISOString();
+    }
+
+    // Handle numeric Excel date (serial number)
+    if (typeof val === "number") {
+      try {
+        const date = new Date((val - 25569) * 86400 * 1000);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString();
+        }
+      } catch {}
+    }
+
+    const str = String(val).trim();
+    if (!str) return new Date().toISOString();
+
+    // Try standard JS date parsing
+    try {
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString();
+      }
+    } catch {}
+
+    // Fallback parsing for Indian Standard Time string format: "DD/MM/YYYY, HH:MM:SS" or "DD/MM/YYYY"
+    try {
+      const parts = str.split(/[\/\-\,\s\:]+/);
+      if (parts.length >= 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // 0-indexed
+        const year = parseInt(parts[2], 10);
+
+        let hour = 0;
+        let minute = 0;
+        let second = 0;
+
+        if (parts.length >= 6) {
+          hour = parseInt(parts[3], 10);
+          minute = parseInt(parts[4], 10);
+          second = parseInt(parts[5], 10);
+        }
+
+        // Adjust for AM/PM if present in string
+        const lowerStr = str.toLowerCase();
+        if (lowerStr.includes("pm") && hour < 12) hour += 12;
+        if (lowerStr.includes("am") && hour === 12) hour = 0;
+
+        const date = new Date(year, month, day, hour, minute, second);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString();
+        }
+      }
+    } catch {}
+
+    // Graceful fallback to current time rather than crash
+    return new Date().toISOString();
+  };
+
   // Main importing and duplicate protection utility
   const importWorkbookData = (wb: XLSX.WorkBook) => {
     const parsedProfile: Partial<CompanyProfile> = {};
@@ -162,7 +223,7 @@ export function UploadButton() {
             else if (cleanHeader === "total power (kw)" || cleanHeader === "total power") z.totalPower = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "description") z.description = val ? String(val).trim() : null;
             else if (cleanHeader === "recorded by") z.recordedBy = val ? String(val).trim() : null;
-            else if (cleanHeader === "date" || cleanHeader === "time") z.createdAt = val ? new Date(val).toISOString() : new Date().toISOString();
+            else if (cleanHeader === "date" || cleanHeader === "time") z.createdAt = parseExcelDate(val);
           });
 
           if (z.name) {
@@ -206,7 +267,7 @@ export function UploadButton() {
             else if (cleanHeader === "total power (kw)" || cleanHeader === "total power") a.totalPower = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "description") a.description = val ? String(val).trim() : null;
             else if (cleanHeader === "recorded by") a.recordedBy = val ? String(val).trim() : null;
-            else if (cleanHeader === "date" || cleanHeader === "time") a.createdAt = val ? new Date(val).toISOString() : new Date().toISOString();
+            else if (cleanHeader === "date" || cleanHeader === "time") a.createdAt = parseExcelDate(val);
           });
 
           if (a.name && a.parentZoneName) {
@@ -244,7 +305,7 @@ export function UploadButton() {
             else if (cleanHeader === "load factor") e.loadFactor = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "description") e.description = val ? String(val).trim() : null;
             else if (cleanHeader === "recorded by") e.recordedBy = val ? String(val).trim() : null;
-            else if (cleanHeader === "date" || cleanHeader === "time") e.createdAt = val ? new Date(val).toISOString() : new Date().toISOString();
+            else if (cleanHeader === "date" || cleanHeader === "time") e.createdAt = parseExcelDate(val);
           });
 
           if (e.machineTag && e.parentAreaName) {
@@ -274,7 +335,7 @@ export function UploadButton() {
             else if (cleanHeader === "remark") ap.remark = val ? String(val).trim() : null;
             else if (cleanHeader === "description") ap.description = val ? String(val).trim() : null;
             else if (cleanHeader === "recorded by") ap.recordedBy = val ? String(val).trim() : null;
-            else if (cleanHeader === "date" || cleanHeader === "time") ap.createdAt = val ? new Date(val).toISOString() : new Date().toISOString();
+            else if (cleanHeader === "date" || cleanHeader === "time") ap.createdAt = parseExcelDate(val);
           });
 
           if (ap.stage !== null) {

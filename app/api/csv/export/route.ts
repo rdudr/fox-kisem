@@ -37,52 +37,105 @@ export async function GET() {
     "Name", "PQ Name", "Recording ID",
     "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3", 
     "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3", 
-    "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Recorded By", "Time"
+    "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Photo Path", "Recorded By", "Time"
   ];
   const zoneDataRows = zones.map(z => [
     z.name, z.pqName || "", z.recordingNameId || "",
     f2(z.v1), f2(z.v2), f2(z.v3), f2(z.uthd1), f2(z.uthd2), f2(z.uthd3),
     f2(z.i1), f2(z.i2), f2(z.i3), f2(z.ithd1), f2(z.ithd2), f2(z.ithd3),
-    f3(z.pf), f2(z.kvarD), f2(z.kvarQ), z.kvarLeadLag || "", f2(z.totalPower), z.description || "", z.recordedBy || "Unknown",
+    f3(z.pf), f2(z.kvarD), f2(z.kvarQ), z.kvarLeadLag || "", f2(z.totalPower), z.description || "", z.photoPath || "", z.recordedBy || "Unknown",
     new Date(z.createdAt).toLocaleString()
   ]);
   const ws1 = XLSX.utils.aoa_to_sheet([...metadataRows, zoneHeaders, ...zoneDataRows]);
 
-  // --- SHEET 2: MCC/PCC ---
-  const areaHeaders = [
-    "Plant Main Input", "MCC/PCC Name", "PQ Name", "Recording ID",
+  // --- SHEET 2: PCC Panels ---
+  const pccHeaders = [
+    "Plant Main Input", "PCC Name", "PQ Name", "Recording ID",
     "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3", 
     "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3", 
-    "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Recorded By", "Time"
+    "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Photo Path", "Recorded By", "Time"
   ];
-  const areaDataRows = areas.map(a => [
+  const pccDataRows = areas.filter(a => a.type === "PCC").map(a => [
     a.zone?.name || "", a.name, a.pqName || "", a.recordingNameId || "",
     f2(a.v1), f2(a.v2), f2(a.v3), f2(a.uthd1), f2(a.uthd2), f2(a.uthd3),
     f2(a.i1), f2(a.i2), f2(a.i3), f2(a.ithd1), f2(a.ithd2), f2(a.ithd3),
-    f3(a.pf), f2(a.kvarD), f2(a.kvarQ), a.kvarLeadLag || "", f2(a.totalPower), a.description || "", a.recordedBy || "Unknown",
+    f3(a.pf), f2(a.kvarD), f2(a.kvarQ), a.kvarLeadLag || "", f2(a.totalPower), a.description || "", a.photoPath || "", a.recordedBy || "Unknown",
     new Date(a.createdAt).toLocaleString()
   ]);
-  const ws2 = XLSX.utils.aoa_to_sheet([areaHeaders, ...areaDataRows]);
+  const ws2 = XLSX.utils.aoa_to_sheet([pccHeaders, ...pccDataRows]);
 
-  // --- SHEET 3: Motor Load ---
+  // --- SHEET 3: MCC Panels ---
+  const mccHeaders = [
+    "Plant Main Input", "Parent PCC Panel", "MCC Name", "PQ Name", "Recording ID",
+    "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3", 
+    "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3", 
+    "PF", "KVAr (D)", "KVAr (Q)", "Lead/Lag", "Total Power (kW)", "Description", "Photo Path", "Recorded By", "Time"
+  ];
+  const mccDataRows = areas.filter(a => a.type === "MCC").map(a => {
+    const parentPcc = areas.find(p => p.id === a.pccId);
+    return [
+      a.zone?.name || "", parentPcc ? parentPcc.name : "Direct Feed", a.name, a.pqName || "", a.recordingNameId || "",
+      f2(a.v1), f2(a.v2), f2(a.v3), f2(a.uthd1), f2(a.uthd2), f2(a.uthd3),
+      f2(a.i1), f2(a.i2), f2(a.i3), f2(a.ithd1), f2(a.ithd2), f2(a.ithd3),
+      f3(a.pf), f2(a.kvarD), f2(a.kvarQ), a.kvarLeadLag || "", f2(a.totalPower), a.description || "", a.photoPath || "", a.recordedBy || "Unknown",
+      new Date(a.createdAt).toLocaleString()
+    ];
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet([mccHeaders, ...mccDataRows]);
+
+  // --- SHEET 4: Motor Load ---
   const entryHeaders = [
-    "Plant Main Input", "MCC/PCC", "MachineTag", "StarterType", 
+    "Plant Main Input", "Parent PCC Panel", "MCC Panel Name", "MachineTag", "StarterType", 
     "RatedKw", "RatedHp", "Voltage(V)", "Current(I)", 
     "KVA", "PF", "KVAr", "MeasuredKw", "CalculatedPower(kW)", 
-    "LoadFactor", "Description", "Recorded By", "Time"
+    "LoadFactor", "Description", "Photo Path", "Recorded By", "Time"
   ];
-  const entryDataRows = entries.map(e => [
-    e.area?.zone?.name || "", e.area?.name || "", e.machineTag || "", e.starterType || "",
-    f2(e.ratedKw), f2(e.ratedHp), f2(e.voltage), f2(e.current),
-    f2(e.kva), f3(e.pf), f2(e.kvar), f2(e.measuredKw), f2(e.calculatedPower),
-    f3(e.loadFactor), e.description || "", e.recordedBy || "Unknown", new Date(e.createdAt).toLocaleString()
-  ]);
-  const ws3 = XLSX.utils.aoa_to_sheet([entryHeaders, ...entryDataRows]);
+  const entryDataRows = entries.map(e => {
+    let pccName = "";
+    let mccName = "";
+    if (e.area) {
+      if (e.area.type === "MCC") {
+        mccName = e.area.name;
+        const parentPcc = areas.find(p => p.id === e.area.pccId);
+        pccName = parentPcc ? parentPcc.name : "Direct Feed";
+      } else {
+        pccName = e.area.name;
+        mccName = "Direct (No MCC)";
+      }
+    }
+    return [
+      e.area?.zone?.name || "", pccName || "Unknown", mccName || "Unknown", e.machineTag || "", e.starterType || "",
+      f2(e.ratedKw), f2(e.ratedHp), f2(e.voltage), f2(e.current),
+      f2(e.kva), f3(e.pf), f2(e.kvar), f2(e.measuredKw), f2(e.calculatedPower),
+      f3(e.loadFactor), e.description || "", e.photoPath || "", e.recordedBy || "Unknown", new Date(e.createdAt).toLocaleString()
+    ];
+  });
+  const ws4 = XLSX.utils.aoa_to_sheet([entryHeaders, ...entryDataRows]);
+
+  // --- SHEET 5: APFC ---
+  const apfcs = await prisma.apfcTag.findMany({ orderBy: { createdAt: "desc" } });
+  const apfcHeaders = [
+    "Location Plant Input", "Location Panel", "Stage", "Rated Capacitor Value", "Voltage",
+    "I-R", "I-Y", "I-B", "Remark", "Description", "Photo Path", "Recorded By", "Time"
+  ];
+  const apfcDataRows = apfcs.map(ap => {
+    const zone = zones.find(z => z.id === ap.zoneId);
+    const panel = areas.find(p => p.id === ap.areaId);
+    const panelStr = panel ? `[${panel.type}] ${panel.name}` : "Direct Feed";
+    return [
+      zone?.name || "", panelStr, ap.stage || "", ap.ratedCapacitorValue || "", ap.voltage || "",
+      f2(ap.iR), f2(ap.iY), f2(ap.iB), ap.remark || "", ap.description || "", ap.photoPath || "", ap.recordedBy || "Unknown",
+      new Date(ap.createdAt).toLocaleString()
+    ];
+  });
+  const ws5 = XLSX.utils.aoa_to_sheet([apfcHeaders, ...apfcDataRows]);
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws1, "Plant Main Input");
-  XLSX.utils.book_append_sheet(wb, ws2, "MCC-PCC");
-  XLSX.utils.book_append_sheet(wb, ws3, "Motor Load");
+  XLSX.utils.book_append_sheet(wb, ws2, "PCC Panels");
+  XLSX.utils.book_append_sheet(wb, ws3, "MCC Panels");
+  XLSX.utils.book_append_sheet(wb, ws4, "Motor Load");
+  XLSX.utils.book_append_sheet(wb, ws5, "APFC");
 
   // Output buffer
   const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });

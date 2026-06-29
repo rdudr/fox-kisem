@@ -24,6 +24,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
   const areas   = useAppStore((s) => s.areas);
   const entries = useAppStore((s) => s.entries);
   const apfcs   = useAppStore((s) => s.apfcs);
+  const energySources = useAppStore((s) => s.energySources);
   const wipeData = useAppStore((s) => s.wipeData);
 
   const syncQueue      = useAppStore((s) => s.syncQueue);
@@ -62,7 +63,7 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
   // ─── Try to POST one job to the server ──────────────────────────────────
   async function trySyncJob(
     jobId: string,
-    payload: { profile: any; zones: any[]; areas: any[]; entries: any[]; apfcs?: any[] }
+    payload: { profile: any; zones: any[]; areas: any[]; entries: any[]; apfcs?: any[]; energySources?: any[] }
   ): Promise<{ ok: boolean; error?: string }> {
     const base = getServerBase();
     if (!base) return { ok: false, error: "No server URL configured" };
@@ -110,12 +111,12 @@ export function DashboardExportBtn({ hasCompany }: { hasCompany: boolean }) {
 
     setExporting(true);
     const jobId = crypto.randomUUID();
-    const payload = { profile, zones, areas, entries, apfcs };
+    const payload = { profile, zones, areas, entries, apfcs, energySources };
 
     // 1. Always save Excel file locally first (silent save, no share popup)
     let savedUri: string | null = null;
     try {
-      savedUri = await exportOfflineExcel(profile, zones, areas, entries, apfcs);
+      savedUri = await exportOfflineExcel(profile, zones, areas, entries, apfcs, energySources);
     } catch (err) {
       console.error("[export] local save failed:", err);
       toast.error("Failed to save Excel locally. Check storage permissions.");

@@ -7,7 +7,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { profile, zones, areas, entries, recipients, reporterName } = body;
+    const { profile, zones, areas, entries, apfcs, energySources, recipients, reporterName } = body;
 
     if (!profile) {
       return NextResponse.json({ error: "No company profile provided" }, { status: 400 });
@@ -33,26 +33,75 @@ export async function POST(req: Request) {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(profileRows), "Company Profile");
 
     // Sheet 2: Plant Main Inputs
-    const zoneHeaders = ["Name","PQ Name","V1","V2","V3","UTHD1","UTHD2","UTHD3","I1","I2","I3","ITHD1","ITHD2","ITHD3","Power Factor","KVAr (D)","KVAr (Q)","KVAr Lead/Lag","Total Power (kW)","Description","Date"];
-    const zoneRows = (zones ?? []).map((z: any) => [z.name, z.pqName??"",(z.v1??""),(z.v2??""),(z.v3??""),(z.uthd1??""),(z.uthd2??""),(z.uthd3??""),(z.i1??""),(z.i2??""),(z.i3??""),(z.ithd1??""),(z.ithd2??""),(z.ithd3??""),(z.pf??""),(z.kvarD??""),(z.kvarQ??""),(z.kvarLeadLag??""),(z.totalPower??""),(z.description??""),new Date(z.createdAt).toLocaleString("en-IN")]);
+    const zoneHeaders = ["Name","PQ Name","V1","V2","V3","UTHD1","UTHD2","UTHD3","I1","I2","I3","ITHD1","ITHD2","ITHD3","Power Factor","KVAr (D)","KVAr (Q)","KVAr Lead/Lag","Total Power (kW)","Description","Photo Path","Date"];
+    const zoneRows = (zones ?? []).map((z: any) => [z.name, z.pqName??"",(z.v1??""),(z.v2??""),(z.v3??""),(z.uthd1??""),(z.uthd2??""),(z.uthd3??""),(z.i1??""),(z.i2??""),(z.i3??""),(z.ithd1??""),(z.ithd2??""),(z.ithd3??""),(z.pf??""),(z.kvarD??""),(z.kvarQ??""),(z.kvarLeadLag??""),(z.totalPower??""),(z.description??""),z.photoPath??"",new Date(z.createdAt).toLocaleString("en-IN")]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([zoneHeaders, ...zoneRows]), "Plant Main Inputs");
 
-    // Sheet 3: MCC/PCC Areas
-    const areaHeaders = ["Plant Main Input","MCC/PCC Name","PQ Name","V1","V2","V3","UTHD1","UTHD2","UTHD3","I1","I2","I3","ITHD1","ITHD2","ITHD3","Power Factor","KVAr (D)","KVAr (Q)","KVAr Lead/Lag","Total Power (kW)","Description","Date"];
-    const areaRows = (areas ?? []).map((a: any) => {
+    // Sheet 3: PCC Panels
+    const pccHeaders = ["Plant Main Input","PCC Name","PQ Name","V1","V2","V3","UTHD1","UTHD2","UTHD3","I1","I2","I3","ITHD1","ITHD2","ITHD3","Power Factor","KVAr (D)","KVAr (Q)","KVAr Lead/Lag","Total Power (kW)","Description","Photo Path","Date"];
+    const pccRows = (areas ?? []).filter((a: any) => a.type === "PCC").map((a: any) => {
       const zone = (zones ?? []).find((z: any) => z.id === a.zoneId);
-      return [(zone?.name??"Unknown"), a.name, (a.pqName??""),(a.v1??""),(a.v2??""),(a.v3??""),(a.uthd1??""),(a.uthd2??""),(a.uthd3??""),(a.i1??""),(a.i2??""),(a.i3??""),(a.ithd1??""),(a.ithd2??""),(a.ithd3??""),(a.pf??""),(a.kvarD??""),(a.kvarQ??""),(a.kvarLeadLag??""),(a.totalPower??""),(a.description??""),new Date(a.createdAt).toLocaleString("en-IN")];
+      return [(zone?.name??"Unknown"), a.name, (a.pqName??""),(a.v1??""),(a.v2??""),(a.v3??""),(a.uthd1??""),(a.uthd2??""),(a.uthd3??""),(a.i1??""),(a.i2??""),(a.i3??""),(a.ithd1??""),(a.ithd2??""),(a.ithd3??""),(a.pf??""),(a.kvarD??""),(a.kvarQ??""),(a.kvarLeadLag??""),(a.totalPower??""),(a.description??""),a.photoPath??"",new Date(a.createdAt).toLocaleString("en-IN")];
     });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([areaHeaders, ...areaRows]), "MCC-PCC Areas");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([pccHeaders, ...pccRows]), "PCC Panels");
 
-    // Sheet 4: Motor Loads
-    const entryHeaders = ["Zone","Area (MCC/PCC)","Machine Tag","Starter Type","Rated kW","Rated HP","Voltage (V)","Current (A)","KVA","Power Factor","KVAr","Measured kW","Calculated Power (kW)","Load Factor","Description","Date"];
+    // Sheet 4: MCC Panels
+    const mccHeaders = ["Plant Main Input","Parent PCC Panel","MCC Name","PQ Name","V1","V2","V3","UTHD1","UTHD2","UTHD3","I1","I2","I3","ITHD1","ITHD2","ITHD3","Power Factor","KVAr (D)","KVAr (Q)","KVAr Lead/Lag","Total Power (kW)","Description","Photo Path","Date"];
+    const mccRows = (areas ?? []).filter((a: any) => a.type === "MCC").map((a: any) => {
+      const zone = (zones ?? []).find((z: any) => z.id === a.zoneId);
+      const parentPcc = (areas ?? []).find((p: any) => p.id === a.pccId);
+      return [(zone?.name??"Unknown"), (parentPcc?.name??"Direct Feed"), a.name, (a.pqName??""),(a.v1??""),(a.v2??""),(a.v3??""),(a.uthd1??""),(a.uthd2??""),(a.uthd3??""),(a.i1??""),(a.i2??""),(a.i3??""),(a.ithd1??""),(a.ithd2??""),(a.ithd3??""),(a.pf??""),(a.kvarD??""),(a.kvarQ??""),(a.kvarLeadLag??""),(a.totalPower??""),(a.description??""),a.photoPath??"",new Date(a.createdAt).toLocaleString("en-IN")];
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([mccHeaders, ...mccRows]), "MCC Panels");
+
+    // Sheet 5: Motor Loads
+    const entryHeaders = ["Zone","Area (MCC/PCC)","Machine Tag","Starter Type","Rated kW","Rated HP","Voltage (V)","Current (A)","KVA","Power Factor","KVAr","Measured kW","Calculated Power (kW)","Load Factor","Description","Photo Path","Date"];
     const entryRows = (entries ?? []).map((e: any) => {
       const area = (areas ?? []).find((a: any) => a.id === e.areaId);
       const zone = (zones ?? []).find((z: any) => z.id === area?.zoneId);
-      return [(zone?.name??"Unknown"),(area?.name??"Unknown"),e.machineTag,e.starterType,e.ratedKw,(e.ratedHp??""),(e.voltage??""),(e.current??""),(e.kva??""),(e.pf??""),(e.kvar??""),e.measuredKw,Number(e.calculatedPower).toFixed(2),Number(e.loadFactor).toFixed(3),(e.description??""),new Date(e.createdAt).toLocaleString("en-IN")];
+      return [(zone?.name??"Unknown"),(area?.name??"Unknown"),e.machineTag,e.starterType,e.ratedKw,(e.ratedHp??""),(e.voltage??""),(e.current??""),(e.kva??""),(e.pf??""),(e.kvar??""),e.measuredKw,Number(e.calculatedPower).toFixed(2),Number(e.loadFactor).toFixed(3),(e.description??""),e.photoPath??"",new Date(e.createdAt).toLocaleString("en-IN")];
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([entryHeaders, ...entryRows]), "Motor Loads");
+
+    // Sheet 6: APFC
+    const apfcHeaders = ["Location Plant Input","Location Panel","Stage","Rated Capacitor Value","Voltage","I-R","I-Y","I-B","Remark","Description","Photo Path","Date"];
+    const apfcRows = (apfcs ?? []).map((ap: any) => {
+      const zone = (zones ?? []).find((z: any) => z.id === ap.zoneId);
+      const panel = (areas ?? []).find((p: any) => p.id === ap.areaId);
+      const panelStr = panel ? `[${panel.type}] ${panel.name}` : "Direct Feed";
+      return [
+        (zone?.name??"Unknown"),
+        panelStr,
+        ap.stage??"",
+        ap.ratedCapacitorValue??"",
+        ap.voltage??"",
+        ap.iR??"",
+        ap.iY??"",
+        ap.iB??"",
+        ap.remark??"",
+        ap.description??"",
+        ap.photoPath??"",
+        new Date(ap.createdAt).toLocaleString("en-IN")
+      ];
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([apfcHeaders, ...apfcRows]), "APFC");
+
+    // Sheet 7: Energy Sources
+    const energySourceHeaders = ["Source Name","Source Type","PQ Name","Recording ID","V1","V2","V3","UTHD1","UTHD2","UTHD3","I1","I2","I3","ITHD1","ITHD2","ITHD3","Power Factor","KVAr (D)","KVAr (Q)","KVAr Lead/Lag","Total Power (kW)","Date"];
+    const energySourceRows = (energySources ?? []).map((es: any) => [
+      es.name,
+      es.sourceType,
+      es.pqName ?? "",
+      es.recordingNameId ?? "",
+      es.v1 ?? "", es.v2 ?? "", es.v3 ?? "",
+      es.uthd1 ?? "", es.uthd2 ?? "", es.uthd3 ?? "",
+      es.i1 ?? "", es.i2 ?? "", es.i3 ?? "",
+      es.ithd1 ?? "", es.ithd2 ?? "", es.ithd3 ?? "",
+      es.pf ?? "", es.kvarD ?? "", es.kvarQ ?? "", es.kvarLeadLag ?? "",
+      es.totalPower ?? "",
+      es.createdAt ? new Date(es.createdAt).toLocaleString("en-IN") : new Date().toLocaleString("en-IN")
+    ]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([energySourceHeaders, ...energySourceRows]), "Energy Sources");
 
     // Generate xlsx buffer
     const xlsxBuffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -76,6 +125,7 @@ export async function POST(req: Request) {
   <p>The comprehensive motor load analysis and equipment data collection was completed on <strong>${finalTime}</strong>.</p>
   <p><strong>Report Summary:</strong></p>
   <ul style="color: #666;">
+    <li>Energy Sources: ${(energySources ?? []).length}</li>
     <li>Zones Recorded: ${zones.length}</li>
     <li>MCC/PCC Areas: ${areas.length}</li>
     <li>Motor Load Entries: ${entries.length}</li>

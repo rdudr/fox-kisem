@@ -26,7 +26,7 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: Request) {
-  const { jobId, reporterName, profile, zones, areas, entries, apfcs } = await req.json();
+  const { jobId, reporterName, profile, zones, areas, entries, apfcs, energySources } = await req.json();
 
   console.log("[SYNC] Received jobId:", jobId, "hasProfile:", !!profile);
 
@@ -55,19 +55,56 @@ export async function POST(req: Request) {
       });
     }
 
+    if (energySources && Array.isArray(energySources)) {
+      for (const es of energySources) {
+        await prisma.energySource.upsert({
+          where: { id: es.id },
+          create: {
+            id: es.id,
+            companyProfileId: profile ? profile.id : null,
+            name: es.name,
+            sourceType: es.sourceType,
+            pqName: es.pqName,
+            recordingNameId: es.recordingNameId,
+            v1: es.v1, v2: es.v2, v3: es.v3,
+            uthd1: es.uthd1, uthd2: es.uthd2, uthd3: es.uthd3,
+            i1: es.i1, i2: es.i2, i3: es.i3,
+            ithd1: es.ithd1, ithd2: es.ithd2, ithd3: es.ithd3,
+            pf: es.pf,
+            kvarD: es.kvarD, kvarQ: es.kvarQ, kvarLeadLag: es.kvarLeadLag,
+            totalPower: es.totalPower,
+          },
+          update: {
+            companyProfileId: profile ? profile.id : null,
+            name: es.name,
+            sourceType: es.sourceType,
+            pqName: es.pqName,
+            recordingNameId: es.recordingNameId,
+            v1: es.v1, v2: es.v2, v3: es.v3,
+            uthd1: es.uthd1, uthd2: es.uthd2, uthd3: es.uthd3,
+            i1: es.i1, i2: es.i2, i3: es.i3,
+            ithd1: es.ithd1, ithd2: es.ithd2, ithd3: es.ithd3,
+            pf: es.pf,
+            kvarD: es.kvarD, kvarQ: es.kvarQ, kvarLeadLag: es.kvarLeadLag,
+            totalPower: es.totalPower,
+          }
+        });
+      }
+    }
+
     for (const z of (zones ?? [])) {
       await prisma.zoneTag.upsert({
         where: { id: z.id },
-        create: { id: z.id, name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, recordingNameId: z.recordingNameId, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, uthd1: z.uthd1, uthd2: z.uthd2, uthd3: z.uthd3, ithd1: z.ithd1, ithd2: z.ithd2, ithd3: z.ithd3, i1: z.i1, i2: z.i2, i3: z.i3, recordedBy: z.recordedBy, createdAt: z.createdAt ? new Date(z.createdAt) : undefined },
-        update: { name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, recordingNameId: z.recordingNameId, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, uthd1: z.uthd1, uthd2: z.uthd2, uthd3: z.uthd3, ithd1: z.ithd1, ithd2: z.ithd2, ithd3: z.ithd3, i1: z.i1, i2: z.i2, i3: z.i3, recordedBy: z.recordedBy, createdAt: z.createdAt ? new Date(z.createdAt) : undefined },
+        create: { id: z.id, name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, recordingNameId: z.recordingNameId, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, uthd1: z.uthd1, uthd2: z.uthd2, uthd3: z.uthd3, ithd1: z.ithd1, ithd2: z.ithd2, ithd3: z.ithd3, i1: z.i1, i2: z.i2, i3: z.i3, recordedBy: z.recordedBy, photoPath: z.photoPath, createdAt: z.createdAt ? new Date(z.createdAt) : undefined },
+        update: { name: z.name, v1: z.v1, v2: z.v2, v3: z.v3, pf: z.pf, totalPower: z.totalPower, pqName: z.pqName, recordingNameId: z.recordingNameId, description: z.description, kvarD: z.kvarD, kvarQ: z.kvarQ, kvarLeadLag: z.kvarLeadLag, uthd1: z.uthd1, uthd2: z.uthd2, uthd3: z.uthd3, ithd1: z.ithd1, ithd2: z.ithd2, ithd3: z.ithd3, i1: z.i1, i2: z.i2, i3: z.i3, recordedBy: z.recordedBy, photoPath: z.photoPath, createdAt: z.createdAt ? new Date(z.createdAt) : undefined },
       });
     }
 
     for (const a of (areas ?? [])) {
       await prisma.areaTag.upsert({
         where: { id: a.id },
-        create: { id: a.id, zoneId: a.zoneId, name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, recordingNameId: a.recordingNameId, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, uthd1: a.uthd1, uthd2: a.uthd2, uthd3: a.uthd3, ithd1: a.ithd1, ithd2: a.ithd2, ithd3: a.ithd3, i1: a.i1, i2: a.i2, i3: a.i3, recordedBy: a.recordedBy, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
-        update: { name: a.name, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, recordingNameId: a.recordingNameId, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, uthd1: a.uthd1, uthd2: a.uthd2, uthd3: a.uthd3, ithd1: a.ithd1, ithd2: a.ithd2, ithd3: a.ithd3, i1: a.i1, i2: a.i2, i3: a.i3, recordedBy: a.recordedBy, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
+        create: { id: a.id, zoneId: a.zoneId, name: a.name, type: a.type, pccId: a.pccId, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, recordingNameId: a.recordingNameId, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, uthd1: a.uthd1, uthd2: a.uthd2, uthd3: a.uthd3, ithd1: a.ithd1, ithd2: a.ithd2, ithd3: a.ithd3, i1: a.i1, i2: a.i2, i3: a.i3, recordedBy: a.recordedBy, photoPath: a.photoPath, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
+        update: { name: a.name, type: a.type, pccId: a.pccId, v1: a.v1, v2: a.v2, v3: a.v3, pf: a.pf, totalPower: a.totalPower, pqName: a.pqName, recordingNameId: a.recordingNameId, description: a.description, kvarD: a.kvarD, kvarQ: a.kvarQ, kvarLeadLag: a.kvarLeadLag, uthd1: a.uthd1, uthd2: a.uthd2, uthd3: a.uthd3, ithd1: a.ithd1, ithd2: a.ithd2, ithd3: a.ithd3, i1: a.i1, i2: a.i2, i3: a.i3, recordedBy: a.recordedBy, photoPath: a.photoPath, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
       });
     }
 
@@ -91,12 +128,12 @@ export async function POST(req: Request) {
           vfdFrequency: e.vfdFrequency, ratedKw: e.ratedKw, ratedHp: e.ratedHp,
           voltage: e.voltage, current: e.current, kva: e.kva, pf: e.pf, kvar: e.kvar,
           measuredKw: e.measuredKw, calculatedPower: e.calculatedPower, loadFactor: e.loadFactor,
-          description: e.description, recordedBy: e.recordedBy, createdAt: e.createdAt ? new Date(e.createdAt) : undefined, createdById: systemUser.id,
+          description: e.description, recordedBy: e.recordedBy, photoPath: e.photoPath, createdAt: e.createdAt ? new Date(e.createdAt) : undefined, createdById: systemUser.id,
         },
         update: {
           machineTag: e.machineTag, starterType: e.starterType, vfdFrequency: e.vfdFrequency,
           ratedKw: e.ratedKw, measuredKw: e.measuredKw, calculatedPower: e.calculatedPower,
-          loadFactor: e.loadFactor, recordedBy: e.recordedBy, createdAt: e.createdAt ? new Date(e.createdAt) : undefined,
+          loadFactor: e.loadFactor, recordedBy: e.recordedBy, photoPath: e.photoPath, createdAt: e.createdAt ? new Date(e.createdAt) : undefined,
         },
       });
     }
@@ -104,8 +141,8 @@ export async function POST(req: Request) {
     for (const a of (apfcs ?? [])) {
       await prisma.apfcTag.upsert({
         where: { id: a.id },
-        create: { id: a.id, stage: a.stage, ratedCapacitorValue: a.ratedCapacitorValue, voltage: a.voltage, iR: a.iR, iY: a.iY, iB: a.iB, remark: a.remark, description: a.description, recordedBy: a.recordedBy, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
-        update: { stage: a.stage, ratedCapacitorValue: a.ratedCapacitorValue, voltage: a.voltage, iR: a.iR, iY: a.iY, iB: a.iB, remark: a.remark, description: a.description, recordedBy: a.recordedBy, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
+        create: { id: a.id, stage: a.stage, ratedCapacitorValue: a.ratedCapacitorValue, voltage: a.voltage, iR: a.iR, iY: a.iY, iB: a.iB, remark: a.remark, description: a.description, recordedBy: a.recordedBy, photoPath: a.photoPath, zoneId: a.zoneId, areaId: a.areaId, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
+        update: { stage: a.stage, ratedCapacitorValue: a.ratedCapacitorValue, voltage: a.voltage, iR: a.iR, iY: a.iY, iB: a.iB, remark: a.remark, description: a.description, recordedBy: a.recordedBy, photoPath: a.photoPath, zoneId: a.zoneId, areaId: a.areaId, createdAt: a.createdAt ? new Date(a.createdAt) : undefined },
       });
     }
 
@@ -126,7 +163,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email service not configured. Add RESEND_API_KEY to Vercel environment variables." }, { status: 500, headers: CORS_HEADERS });
     }
 
-    const { base64, filename } = buildExcelBase64(profile, zones, areas, entries, apfcs);
+    const { base64, filename } = buildExcelBase64(profile, zones, areas, entries, apfcs, energySources);
     const xlsxBuffer = Buffer.from(base64, "base64");
     const today = new Date();
     const ddmm = `${String(today.getDate()).padStart(2, "0")}${String(today.getMonth() + 1).padStart(2, "0")}`;

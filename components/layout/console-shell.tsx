@@ -12,7 +12,8 @@ const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/company", label: "Company", icon: Building2 },
   { href: "/zones", label: "Plant Main Input", icon: MapPinned },
-  { href: "/areas", label: "MCC/PCC", icon: MapPinned },
+  { href: "/pcc", label: "PCC Panel", icon: MapPinned },
+  { href: "/mcc", label: "MCC Panel", icon: MapPinned },
   { href: "/machines", label: "Motor Load", icon: FileSpreadsheet },
   { href: "/apfc", label: "APFC", icon: FileSpreadsheet },
 ];

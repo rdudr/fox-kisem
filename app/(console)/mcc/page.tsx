@@ -12,9 +12,9 @@ import { useAuthStore } from "@/lib/auth-store";
 import { Camera, Image as ImageIcon } from "lucide-react";
 import { capturePhotoFromDevice, savePhotoLocally, getFormattedDate, sanitizeName } from "@/lib/photo-capture";
 
-export default function PlantMainInputPage() {
+export default function MccPage() {
   const [form, setForm] = useState({
-    name: "",
+    zoneId: "", pccId: "", name: "",
     pqName: "", recordingNameId: "",
     v1: "", v2: "", v3: "",
     uthd1: "", uthd2: "", uthd3: "",
@@ -28,14 +28,43 @@ export default function PlantMainInputPage() {
   const [totalPower, setTotalPower] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
   
-  // Local state for photo capture
+  // Local state for photo capturing
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null);
 
   const zones = useAppStore((state) => state.zones);
-  const addZoneAction = useAppStore((state) => state.addZone);
-  const updateZoneAction = useAppStore((state) => state.updateZone);
-  const deleteZoneAction = useAppStore((state) => state.deleteZone);
+  const areas = useAppStore((state) => state.areas);
+  const addAreaAction = useAppStore((state) => state.addArea);
+  const updateAreaAction = useAppStore((state) => state.updateArea);
+  const deleteAreaAction = useAppStore((state) => state.deleteArea);
+
+  const mccPanels = areas.filter(a => a.type === "MCC");
+  const pccPanels = areas.filter(a => a.type === "PCC");
+
+  // Filter PCC panels belonging to the selected Zone
+  const filteredPccPanels = pccPanels.filter(p => p.zoneId === form.zoneId);
+
+  useEffect(() => {
+    if (!form.zoneId && zones.length > 0) {
+      setForm(prev => ({ ...prev, zoneId: zones[0].id }));
+    }
+  }, [zones]);
+
+  // When Zone changes, optionally auto-select or reset selected PCC panel
+  useEffect(() => {
+    if (form.zoneId) {
+      const pccsInZone = pccPanels.filter(p => p.zoneId === form.zoneId);
+      if (pccsInZone.length > 0) {
+        // If current selected PCC is not in this zone, reset or select first
+        const isCurrentPccInZone = pccsInZone.some(p => p.id === form.pccId);
+        if (!isCurrentPccInZone) {
+          setForm(prev => ({ ...prev, pccId: pccsInZone[0].id }));
+        }
+      } else {
+        setForm(prev => ({ ...prev, pccId: "" }));
+      }
+    }
+  }, [form.zoneId, areas]);
 
   // Real-time calculation of Total Power
   useEffect(() => {
@@ -74,17 +103,22 @@ export default function PlantMainInputPage() {
     }
   }
 
-  async function addZone() {
-    if (!form.name) return toast.error("Name is required");
+  async function addMcc() {
+    if (!form.zoneId) return toast.error("Select a Plant Main Input first");
+    if (!form.name) return toast.error("MCC panel name required");
 
     let savedPath = existingPhotoPath;
 
-    // Save photo if captured
+    // Save photo if captured/changed
     if (capturedPhoto && capturedPhoto.startsWith("data:")) {
       try {
-        const cleanName = sanitizeName(form.name) || "plant";
+        const cleanMccName = sanitizeName(form.name) || "mcc";
+        const parentPcc = pccPanels.find(p => p.id === form.pccId);
+        const cleanPccName = parentPcc ? sanitizeName(parentPcc.name) : "none";
         const dateStr = getFormattedDate();
-        const fileName = `${cleanName}_${dateStr}`;
+        
+        // Name format: mccname_pccname_ddmm
+        const fileName = `${cleanMccName}_${cleanPccName}_${dateStr}`;
         savedPath = await savePhotoLocally(capturedPhoto, fileName);
       } catch (photoErr: any) {
         toast.error("Failed to save photo locally: " + photoErr.message);
@@ -94,7 +128,10 @@ export default function PlantMainInputPage() {
 
     const payload = {
       id: editingId || crypto.randomUUID(),
+      zoneId: form.zoneId,
+      pccId: form.pccId || null,
       name: form.name,
+      type: "MCC" as const,
       photoPath: savedPath || undefined,
       v1: form.v1 ? Number(form.v1) : undefined,
       v2: form.v2 ? Number(form.v2) : undefined,
@@ -117,19 +154,19 @@ export default function PlantMainInputPage() {
       recordingNameId: form.recordingNameId || undefined,
       description: form.description || undefined,
       recordedBy: editingId
-        ? (zones.find(z => z.id === editingId)?.recordedBy || useAuthStore.getState().displayName || "Unknown")
+        ? (areas.find(a => a.id === editingId)?.recordedBy || useAuthStore.getState().displayName || "Unknown")
         : (useAuthStore.getState().displayName || "Unknown"),
       createdAt: editingId
-        ? (zones.find(z => z.id === editingId)?.createdAt || new Date().toISOString())
+        ? (areas.find(a => a.id === editingId)?.createdAt || new Date().toISOString())
         : new Date().toISOString(),
     };
     
     if (editingId) {
-      updateZoneAction(editingId, payload);
-      toast.success("Plant Main Input updated locally");
+      updateAreaAction(editingId, payload);
+      toast.success("MCC Panel updated locally");
     } else {
-      addZoneAction(payload);
-      toast.success("Plant Main Input added locally");
+      addAreaAction(payload);
+      toast.success("MCC Panel added locally");
     }
     
     resetForm();
@@ -137,8 +174,10 @@ export default function PlantMainInputPage() {
 
   function resetForm() {
     setEditingId(null);
-    setForm({
+    setForm(prev => ({
+      ...prev,
       name: "",
+      pccId: "",
       pqName: "", recordingNameId: "",
       v1: "", v2: "", v3: "",
       uthd1: "", uthd2: "", uthd3: "",
@@ -146,35 +185,37 @@ export default function PlantMainInputPage() {
       ithd1: "", ithd2: "", ithd3: "",
       pf: "", kvarD: "", kvarQ: "", kvarLeadLag: "Lag",
       description: ""
-    });
+    }));
     setCapturedPhoto(null);
     setExistingPhotoPath(null);
     setTotalPower(0);
   }
 
-  function handleEdit(z: any) {
-    setEditingId(z.id);
+  function handleEdit(a: any) {
+    setEditingId(a.id);
     setForm({
-      name: z.name || "",
-      pqName: z.pqName || "",
-      recordingNameId: z.recordingNameId || "",
-      v1: z.v1?.toString() || "", v2: z.v2?.toString() || "", v3: z.v3?.toString() || "",
-      uthd1: z.uthd1?.toString() || "", uthd2: z.uthd2?.toString() || "", uthd3: z.uthd3?.toString() || "",
-      i1: z.i1?.toString() || "", i2: z.i2?.toString() || "", i3: z.i3?.toString() || "",
-      ithd1: z.ithd1?.toString() || "", ithd2: z.ithd2?.toString() || "", ithd3: z.ithd3?.toString() || "",
-      pf: z.pf?.toString() || "",
-      kvarD: z.kvarD?.toString() || "", kvarQ: z.kvarQ?.toString() || "", kvarLeadLag: z.kvarLeadLag || "Lag",
-      description: z.description || ""
+      zoneId: a.zoneId || "",
+      pccId: a.pccId || "",
+      name: a.name || "",
+      pqName: a.pqName || "",
+      recordingNameId: a.recordingNameId || "",
+      v1: a.v1?.toString() || "", v2: a.v2?.toString() || "", v3: a.v3?.toString() || "",
+      uthd1: a.uthd1?.toString() || "", uthd2: a.uthd2?.toString() || "", uthd3: a.uthd3?.toString() || "",
+      i1: a.i1?.toString() || "", i2: a.i2?.toString() || "", i3: a.i3?.toString() || "",
+      ithd1: a.ithd1?.toString() || "", ithd2: a.ithd2?.toString() || "", ithd3: a.ithd3?.toString() || "",
+      pf: a.pf?.toString() || "",
+      kvarD: a.kvarD?.toString() || "", kvarQ: a.kvarQ?.toString() || "", kvarLeadLag: a.kvarLeadLag || "Lag",
+      description: a.description || ""
     });
-    setExistingPhotoPath(z.photoPath || null);
+    setExistingPhotoPath(a.photoPath || null);
     setCapturedPhoto(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleDelete(id: string) {
-    if (confirm("Delete this Plant Main Input? This will delete all connected panels and motor load entries too.")) {
-      deleteZoneAction(id);
-      toast.success("Plant Main Input deleted");
+    if (confirm("Are you sure you want to delete this MCC Panel? All connected motor load data will also be deleted.")) {
+      deleteAreaAction(id);
+      toast.success("MCC Panel deleted");
       if (editingId === id) resetForm();
     }
   }
@@ -183,11 +224,35 @@ export default function PlantMainInputPage() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>{editingId ? "Edit Plant Main Input" : "Add Plant Main Input"}</CardTitle>
+          <CardTitle>{editingId ? "Edit MCC Panel" : "Add MCC Panel"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} placeholder="e.g. Main Plant Feeder" /></div>
+          <div className="grid gap-3 md:grid-cols-5">
+            <div>
+              <Label>Plant Main Input</Label>
+              <select 
+                className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2 text-sm" 
+                value={form.zoneId} 
+                onChange={(e) => setForm({...form, zoneId: e.target.value})}
+              >
+                {zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label>Parent PCC Panel</Label>
+              <select 
+                className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2 text-sm" 
+                value={form.pccId} 
+                onChange={(e) => setForm({...form, pccId: e.target.value})}
+              >
+                <option value="">None (Fed directly)</option>
+                {filteredPccPanels.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label>MCC Panel Name</Label>
+              <Input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} placeholder="e.g. MCC-1" />
+            </div>
             <div>
               <Label>PQ Name</Label>
               <select 
@@ -203,9 +268,12 @@ export default function PlantMainInputPage() {
                 <option value="LM20">LM20</option>
               </select>
             </div>
-            <div><Label>Recording ID</Label><Input value={form.recordingNameId} onChange={(e) => setForm({...form, recordingNameId: e.target.value})} placeholder="e.g. REC001" /></div>
+            <div>
+              <Label>Recording ID</Label>
+              <Input value={form.recordingNameId} onChange={(e) => setForm({...form, recordingNameId: e.target.value})} placeholder="e.g. REC001" />
+            </div>
           </div>
-          
+
           <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6 pt-2 border-t border-white/5">
             <div><Label>V1</Label><Input type="number" value={form.v1} onChange={(e) => setForm({...form, v1: e.target.value})} /></div>
             <div><Label>V2</Label><Input type="number" value={form.v2} onChange={(e) => setForm({...form, v2: e.target.value})} /></div>
@@ -247,7 +315,7 @@ export default function PlantMainInputPage() {
               <Textarea className="h-24" placeholder="Add additional info..." value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} />
             </div>
             <div>
-              <Label>Main Input Photo (Saved locally on device)</Label>
+              <Label>Panel Photo (Saved locally on device)</Label>
               <div className="mt-1 flex flex-col gap-2">
                 <div className="flex gap-2">
                   <Button type="button" variant="secondary" onClick={handleCapturePhoto} className="flex-1 gap-2 h-9 text-xs">
@@ -285,62 +353,66 @@ export default function PlantMainInputPage() {
           </div>
 
           <div className="flex items-end gap-2 pt-2">
-            <Button onClick={() => void addZone()}>{editingId ? "Update Entry" : "Add Entry"}</Button>
-            {editingId && <Button variant="secondary" onClick={resetForm}>Cancel</Button>}
+            <Button onClick={() => void addMcc()}>{editingId ? "Update Entry" : "Add Entry"}</Button>
+            <Button variant="secondary" onClick={resetForm}>Cancel</Button>
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Plant Main Inputs Recorded</CardTitle>
+          <CardTitle>MCC Panels Recorded</CardTitle>
         </CardHeader>
         <CardContent>
-          {zones.length > 0 ? (
+          {mccPanels.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-slate-400 border-b border-white/10">
-                    <th className="text-left px-2 py-2">Name</th>
+                    <th className="text-left px-2 py-2">Plant Input</th>
+                    <th className="text-left px-2 py-2">Parent PCC</th>
+                    <th className="text-left px-2 py-2">MCC Name</th>
                     <th className="text-left px-2 py-2">PQ Name</th>
                     <th className="text-left px-2 py-2">Total Power</th>
                     <th className="text-left px-2 py-2">Time</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {zones.map((z) => (
-                    <React.Fragment key={z.id}>
+                  {mccPanels.map((a) => (
+                    <React.Fragment key={a.id}>
                       <tr 
                         className="border-t border-white/5 hover:bg-white/5 cursor-pointer" 
-                        onClick={() => setExpanded(expanded === z.id ? null : z.id)}
+                        onClick={() => setExpanded(expanded === a.id ? null : a.id)}
                       >
-                        <td className="px-2 py-3 font-semibold text-slate-200">{z.name}</td>
-                        <td className="px-2 py-3 text-slate-300">{z.pqName || "N/A"}</td>
-                        <td className="px-2 py-3 text-cyan-400 font-bold">{z.totalPower || 0} kW</td>
+                        <td className="px-2 py-3">{zones.find(z => z.id === a.zoneId)?.name || "Unknown"}</td>
+                        <td className="px-2 py-3 text-cyan-300">{pccPanels.find(p => p.id === a.pccId)?.name || "Direct Feed"}</td>
+                        <td className="px-2 py-3 font-semibold text-slate-200">{a.name}</td>
+                        <td className="px-2 py-3 text-slate-300">{a.pqName || "N/A"}</td>
+                        <td className="px-2 py-3 text-cyan-400 font-bold">{a.totalPower || 0} kW</td>
                         <td className="px-2 py-3 text-[10px] text-slate-500">
-                          {new Date(z.createdAt || Date.now()).toLocaleString("en-IN")}
+                          {new Date(a.createdAt || Date.now()).toLocaleString("en-IN")}
                         </td>
                       </tr>
-                      {expanded === z.id && (
+                      {expanded === a.id && (
                         <tr className="bg-slate-900/50">
-                          <td colSpan={4} className="px-4 py-3">
+                          <td colSpan={6} className="px-4 py-3">
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-slate-300">
-                              <div><span className="block text-[10px] uppercase text-slate-500">V1 / V2 / V3</span>{z.v1 ?? "-"}{z.v2 !== undefined ? ` / ${z.v2}` : ""}{z.v3 !== undefined ? ` / ${z.v3}` : ""}</div>
-                              <div><span className="block text-[10px] uppercase text-slate-500">Uthd 1 / 2 / 3</span>{z.uthd1 ?? "-"}{z.uthd2 !== undefined ? ` / ${z.uthd2}` : ""}{z.uthd3 !== undefined ? ` / ${z.uthd3}` : ""}</div>
-                              <div><span className="block text-[10px] uppercase text-slate-500">I1 / I2 / I3</span>{z.i1 ?? "-"}{z.i2 !== undefined ? ` / ${z.i2}` : ""}{z.i3 !== undefined ? ` / ${z.i3}` : ""}</div>
-                              <div><span className="block text-[10px] uppercase text-slate-500">Ithd 1 / 2 / 3</span>{z.ithd1 ?? "-"}{z.ithd2 !== undefined ? ` / ${z.ithd2}` : ""}{z.ithd3 !== undefined ? ` / ${z.ithd3}` : ""}</div>
-                              <div><span className="block text-[10px] uppercase text-slate-500">Power Factor</span>{z.pf ?? "-"}</div>
-                              <div><span className="block text-[10px] uppercase text-slate-500">KVAr (D) / KVAr (Q)</span>{z.kvarD ?? "-"} / {z.kvarQ ?? "-"}</div>
-                              <div><span className="block text-[10px] uppercase text-slate-500">KVAr Style</span>{z.kvarLeadLag ?? "-"}</div>
-                              <div><span className="block text-[10px] uppercase text-slate-500">Recording ID</span>{z.recordingNameId || "N/A"}</div>
+                              <div><span className="block text-[10px] uppercase text-slate-500">V1 / V2 / V3</span>{a.v1 ?? "-"}{a.v2 !== undefined ? ` / ${a.v2}` : ""}{a.v3 !== undefined ? ` / ${a.v3}` : ""}</div>
+                              <div><span className="block text-[10px] uppercase text-slate-500">Uthd 1 / 2 / 3</span>{a.uthd1 ?? "-"}{a.uthd2 !== undefined ? ` / ${a.uthd2}` : ""}{a.uthd3 !== undefined ? ` / ${a.uthd3}` : ""}</div>
+                              <div><span className="block text-[10px] uppercase text-slate-500">I1 / I2 / I3</span>{a.i1 ?? "-"}{a.i2 !== undefined ? ` / ${a.i2}` : ""}{a.i3 !== undefined ? ` / ${a.i3}` : ""}</div>
+                              <div><span className="block text-[10px] uppercase text-slate-500">Ithd 1 / 2 / 3</span>{a.ithd1 ?? "-"}{a.ithd2 !== undefined ? ` / ${a.ithd2}` : ""}{a.ithd3 !== undefined ? ` / ${a.ithd3}` : ""}</div>
+                              <div><span className="block text-[10px] uppercase text-slate-500">Power Factor</span>{a.pf ?? "-"}</div>
+                              <div><span className="block text-[10px] uppercase text-slate-500">KVAr (D) / KVAr (Q)</span>{a.kvarD ?? "-"} / {a.kvarQ ?? "-"}</div>
+                              <div><span className="block text-[10px] uppercase text-slate-500">KVAr Style</span>{a.kvarLeadLag ?? "-"}</div>
+                              <div><span className="block text-[10px] uppercase text-slate-500">Recording ID</span>{a.recordingNameId || "N/A"}</div>
                               <div className="col-span-2">
                                 <span className="block text-[10px] uppercase text-slate-500">Photo Path</span>
-                                <span className="text-[10px] font-mono break-all text-slate-400">{z.photoPath || "No photo captured"}</span>
+                                <span className="text-[10px] font-mono break-all text-slate-400">{a.photoPath || "No photo captured"}</span>
                               </div>
-                              <div className="col-span-2"><span className="block text-[10px] uppercase text-slate-500">Description</span>{z.description || "N/A"}</div>
+                              <div className="col-span-2"><span className="block text-[10px] uppercase text-slate-500">Description</span>{a.description || "N/A"}</div>
                               <div className="col-span-full pt-2 flex justify-end gap-2">
-                                <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(z); }}>Edit</Button>
-                                <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); handleDelete(z.id); }}>Delete</Button>
+                                <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(a); }}>Edit</Button>
+                                <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); handleDelete(a.id); }}>Delete</Button>
                               </div>
                             </div>
                           </td>
@@ -352,7 +424,7 @@ export default function PlantMainInputPage() {
               </table>
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">No plant main inputs recorded yet.</p>
+            <p className="text-slate-400 text-sm">No MCC panels recorded yet.</p>
           )}
         </CardContent>
       </Card>

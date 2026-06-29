@@ -134,7 +134,7 @@ export default function LoginPage() {
                     <div className="text-[10px] text-slate-400 mt-1">Last updated: {lastUpdated}</div>
                   )}
                   <div className="text-[10px] text-slate-500 mt-1">
-                    {entries.length} entries, {zones.length} zones, {areas.length} MCC/PCC
+                    {entries.length} entries, {zones.length} zones, {areas.filter(a => a.type === "PCC").length} PCC, {areas.filter(a => a.type === "MCC").length} MCC
                   </div>
                   <div className="flex gap-2 mt-3">
                     <Button

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/prepare-vercel.mjs && prisma generate && prisma db push --accept-data-loss && npx tsx prisma/seed.ts && next build",
-    "build:mobile": "prisma generate && cross-env NEXT_BUILD_TARGET=mobile next build",
+    "build:mobile": "prisma generate && node scripts/build-mobile.mjs",
     "export:apk": "node scripts/export-apk.mjs",
     "start": "next start",
     "lint": "eslint",

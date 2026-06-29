@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
-import { CompanyProfile, ZoneTag, AreaTag, Entry, ApfcTag } from "@/lib/store";
+import { CompanyProfile, ZoneTag, AreaTag, Entry, ApfcTag, EnergySource } from "@/lib/store";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Workbook builder — shared between local export and server email attachment
@@ -11,7 +11,8 @@ export function buildWorkbook(
   zones: ZoneTag[],
   areas: AreaTag[],
   entries: Entry[],
-  apfcs: ApfcTag[] = []
+  apfcs: ApfcTag[] = [],
+  energySources: EnergySource[] = []
 ): XLSX.WorkBook {
   const wb = XLSX.utils.book_new();
 
@@ -36,7 +37,7 @@ export function buildWorkbook(
     "I1", "I2", "I3",
     "Ithd1", "Ithd2", "Ithd3",
     "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag",
-    "Total Power (kW)", "Description", "Recorded By", "Date",
+    "Total Power (kW)", "Description", "Photo Path", "Recorded By", "Date",
   ];
   const zoneRows = zones.map((z) => [
     z.name, z.pqName ?? "", z.recordingNameId ?? "",
@@ -45,22 +46,22 @@ export function buildWorkbook(
     z.i1 ?? "", z.i2 ?? "", z.i3 ?? "",
     z.ithd1 ?? "", z.ithd2 ?? "", z.ithd3 ?? "",
     z.pf ?? "", z.kvarD ?? "", z.kvarQ ?? "", z.kvarLeadLag ?? "",
-    z.totalPower ?? "", z.description ?? "", z.recordedBy ?? "Unknown",
+    z.totalPower ?? "", z.description ?? "", z.photoPath ?? "", z.recordedBy ?? "Unknown",
     new Date(z.createdAt).toLocaleString("en-IN"),
   ]);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([zoneHeaders, ...zoneRows]), "Plant Main Inputs");
 
-  // Sheet 3: MCC/PCC (Areas)
-  const areaHeaders = [
-    "Plant Main Input", "MCC/PCC Name", "PQ Name", "Recording ID",
+  // Sheet 3: PCC Panels
+  const pccHeaders = [
+    "Plant Main Input", "PCC Name", "PQ Name", "Recording ID",
     "V1", "V2", "V3",
     "Uthd1", "Uthd2", "Uthd3",
     "I1", "I2", "I3",
     "Ithd1", "Ithd2", "Ithd3",
     "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag",
-    "Total Power (kW)", "Description", "Recorded By", "Date",
+    "Total Power (kW)", "Description", "Photo Path", "Recorded By", "Date",
   ];
-  const areaRows = areas.map((a) => [
+  const pccRows = areas.filter(a => a.type === "PCC").map((a) => [
     zones.find((z) => z.id === a.zoneId)?.name ?? "Unknown",
     a.name, a.pqName ?? "", a.recordingNameId ?? "",
     a.v1 ?? "", a.v2 ?? "", a.v3 ?? "",
@@ -68,50 +69,120 @@ export function buildWorkbook(
     a.i1 ?? "", a.i2 ?? "", a.i3 ?? "",
     a.ithd1 ?? "", a.ithd2 ?? "", a.ithd3 ?? "",
     a.pf ?? "", a.kvarD ?? "", a.kvarQ ?? "", a.kvarLeadLag ?? "",
-    a.totalPower ?? "", a.description ?? "", a.recordedBy ?? "Unknown",
+    a.totalPower ?? "", a.description ?? "", a.photoPath ?? "", a.recordedBy ?? "Unknown",
     new Date(a.createdAt).toLocaleString("en-IN"),
   ]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([areaHeaders, ...areaRows]), "MCC-PCC Areas");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([pccHeaders, ...pccRows]), "PCC Panels");
 
-  // Sheet 4: Motor Loads (Entries)
+  // Sheet 4: MCC Panels
+  const mccHeaders = [
+    "Plant Main Input", "Parent PCC Panel", "MCC Name", "PQ Name", "Recording ID",
+    "V1", "V2", "V3",
+    "Uthd1", "Uthd2", "Uthd3",
+    "I1", "I2", "I3",
+    "Ithd1", "Ithd2", "Ithd3",
+    "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag",
+    "Total Power (kW)", "Description", "Photo Path", "Recorded By", "Date",
+  ];
+  const mccRows = areas.filter(a => a.type === "MCC").map((a) => {
+    const parentPcc = areas.find(p => p.id === a.pccId);
+    return [
+      zones.find((z) => z.id === a.zoneId)?.name ?? "Unknown",
+      parentPcc ? parentPcc.name : "Direct Feed",
+      a.name, a.pqName ?? "", a.recordingNameId ?? "",
+      a.v1 ?? "", a.v2 ?? "", a.v3 ?? "",
+      a.uthd1 ?? "", a.uthd2 ?? "", a.uthd3 ?? "",
+      a.i1 ?? "", a.i2 ?? "", a.i3 ?? "",
+      a.ithd1 ?? "", a.ithd2 ?? "", a.ithd3 ?? "",
+      a.pf ?? "", a.kvarD ?? "", a.kvarQ ?? "", a.kvarLeadLag ?? "",
+      a.totalPower ?? "", a.description ?? "", a.photoPath ?? "", a.recordedBy ?? "Unknown",
+      new Date(a.createdAt).toLocaleString("en-IN"),
+    ];
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([mccHeaders, ...mccRows]), "MCC Panels");
+
+  // Sheet 5: Motor Loads (Entries)
   const entryHeaders = [
-    "Zone", "Area (MCC/PCC)", "Machine Tag", "Starter Type", "VFD Frequency",
+    "Zone (Plant Input)", "Parent PCC Panel", "MCC Panel Name", "Machine Tag", "Starter Type", "VFD Frequency",
     "Rated kW", "Rated HP", "Voltage (V)", "Current (A)",
     "KVA", "Power Factor", "KVAr",
     "Measured kW", "Calculated Power (kW)", "Load Factor",
-    "Description", "Recorded By", "Date",
+    "Description", "Photo Path", "Recorded By", "Date",
   ];
   const entryRows = entries.map((e) => {
     const area = areas.find((a) => a.id === e.areaId);
     const zone = zones.find((z) => z.id === area?.zoneId);
+    
+    let pccName = "";
+    let mccName = "";
+    if (area) {
+      if (area.type === "MCC") {
+        mccName = area.name;
+        const parentPcc = areas.find(p => p.id === area.pccId);
+        pccName = parentPcc ? parentPcc.name : "Direct Feed";
+      } else {
+        pccName = area.name;
+        mccName = "Direct (No MCC)";
+      }
+    }
+
     return [
       zone?.name ?? "Unknown",
-      area?.name ?? "Unknown",
+      pccName || "Unknown",
+      mccName || "Unknown",
       e.machineTag, e.starterType, e.vfdFrequency ?? "",
       e.ratedKw, e.ratedHp ?? "", e.voltage ?? "", e.current ?? "",
       e.kva ?? "", e.pf ?? "", e.kvar ?? "",
       e.measuredKw,
       Number(e.calculatedPower).toFixed(2),
       Number(e.loadFactor).toFixed(3),
-      e.description ?? "", e.recordedBy ?? "Unknown",
+      e.description ?? "", e.photoPath ?? "", e.recordedBy ?? "Unknown",
       new Date(e.createdAt).toLocaleString("en-IN"),
     ];
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([entryHeaders, ...entryRows]), "Motor Loads");
 
-  // Sheet 5: APFC
+  // Sheet 6: APFC
   const apfcHeaders = [
-    "Stage", "Rated Capacitor Value", "Voltage",
+    "Location Plant Input", "Location Panel", "Stage", "Rated Capacitor Value", "Voltage",
     "I-R", "I-Y", "I-B",
-    "Remark", "Description", "Recorded By", "Date"
+    "Remark", "Description", "Photo Path", "Recorded By", "Date"
   ];
-  const apfcRows = apfcs.map((a) => [
-    a.stage ?? "", a.ratedCapacitorValue ?? "", a.voltage ?? "",
-    a.iR ?? "", a.iY ?? "", a.iB ?? "",
-    a.remark ?? "", a.description ?? "", a.recordedBy ?? "Unknown",
-    new Date(a.createdAt).toLocaleString("en-IN")
-  ]);
+  const apfcRows = apfcs.map((a) => {
+    const zone = zones.find(z => z.id === a.zoneId);
+    const panel = areas.find(p => p.id === a.areaId);
+    const locationPanel = panel ? `[${panel.type}] ${panel.name}` : "Direct Feed";
+
+    return [
+      zone?.name ?? "Unknown",
+      locationPanel,
+      a.stage ?? "", a.ratedCapacitorValue ?? "", a.voltage ?? "",
+      a.iR ?? "", a.iY ?? "", a.iB ?? "",
+      a.remark ?? "", a.description ?? "", a.photoPath ?? "", a.recordedBy ?? "Unknown",
+      new Date(a.createdAt).toLocaleString("en-IN")
+    ];
+  });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([apfcHeaders, ...apfcRows]), "APFC");
+
+  // Sheet 7: Energy Sources
+  const energySourceHeaders = [
+    "Source Name", "Source Type", "PQ Name", "Recording ID",
+    "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3",
+    "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3",
+    "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag",
+    "Total Power (kW)", "Date"
+  ];
+  const energySourceRows = energySources.map((es) => [
+    es.name, es.sourceType, es.pqName ?? "", es.recordingNameId ?? "",
+    es.v1 ?? "", es.v2 ?? "", es.v3 ?? "",
+    es.uthd1 ?? "", es.uthd2 ?? "", es.uthd3 ?? "",
+    es.i1 ?? "", es.i2 ?? "", es.i3 ?? "",
+    es.ithd1 ?? "", es.ithd2 ?? "", es.ithd3 ?? "",
+    es.pf ?? "", es.kvarD ?? "", es.kvarQ ?? "", es.kvarLeadLag ?? "",
+    es.totalPower ?? "",
+    es.createdAt ? new Date(es.createdAt).toLocaleString("en-IN") : new Date().toLocaleString("en-IN")
+  ]);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([energySourceHeaders, ...energySourceRows]), "Energy Sources");
 
   return wb;
 }
@@ -136,9 +207,10 @@ export async function exportOfflineExcel(
   zones: ZoneTag[],
   areas: AreaTag[],
   entries: Entry[],
-  apfcs: ApfcTag[] = []
+  apfcs: ApfcTag[] = [],
+  energySources: EnergySource[] = []
 ): Promise<string | null> {
-  const wb = buildWorkbook(profile, zones, areas, entries, apfcs);
+  const wb = buildWorkbook(profile, zones, areas, entries, apfcs, energySources);
   const filename = getFilename(profile);
 
   if (Capacitor.isNativePlatform()) {
@@ -190,9 +262,10 @@ export function buildExcelBase64(
   zones: ZoneTag[],
   areas: AreaTag[],
   entries: Entry[],
-  apfcs: ApfcTag[] = []
+  apfcs: ApfcTag[] = [],
+  energySources: EnergySource[] = []
 ): { base64: string; filename: string } {
-  const wb = buildWorkbook(profile, zones, areas, entries, apfcs);
+  const wb = buildWorkbook(profile, zones, areas, entries, apfcs, energySources);
   const base64 = XLSX.write(wb, { bookType: "xlsx", type: "base64" });
   return { base64, filename: getFilename(profile) };
 }

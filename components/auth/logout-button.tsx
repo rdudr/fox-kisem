@@ -107,7 +107,7 @@ export function LogoutButton() {
                   </>
                 )}
                 <div className="mt-2 text-slate-500">
-                  {entries.length} motor load entries, {zones.length} zones, {areas.length} MCC/PCC areas
+                  {entries.length} motor load entries, {zones.length} zones, {areas.filter(a => a.type === "PCC").length} PCC panels, {areas.filter(a => a.type === "MCC").length} MCC panels
                 </div>
               </div>
             )}

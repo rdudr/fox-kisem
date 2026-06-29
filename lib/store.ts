@@ -27,6 +27,32 @@ export type CompanyProfile = {
   updatedAt: string;
 };
 
+export type EnergySource = {
+  id: string;
+  name: string;
+  sourceType: 'Main Grid' | 'Solar' | 'Wind';
+  pqName?: string | null;
+  recordingNameId?: string | null;
+  v1?: number | null;
+  v2?: number | null;
+  v3?: number | null;
+  uthd1?: number | null;
+  uthd2?: number | null;
+  uthd3?: number | null;
+  i1?: number | null;
+  i2?: number | null;
+  i3?: number | null;
+  ithd1?: number | null;
+  ithd2?: number | null;
+  ithd3?: number | null;
+  pf?: number | null;
+  kvarD?: number | null;
+  kvarQ?: number | null;
+  kvarLeadLag?: string | null;
+  totalPower?: number | null;
+  createdAt?: string | null;
+};
+
 export type ZoneTag = {
   id: string;
   name: string;
@@ -53,6 +79,7 @@ export type ZoneTag = {
   measuredKw?: number | null;
   totalPower?: number | null;
   recordedBy?: string | null;
+  photoPath?: string | null;
   createdAt: string;
 };
 
@@ -60,6 +87,8 @@ export type AreaTag = {
   id: string;
   zoneId: string;
   name: string;
+  type?: 'PCC' | 'MCC' | null;
+  pccId?: string | null;
   pqName?: string | null;
   v1?: number | null;
   v2?: number | null;
@@ -83,6 +112,7 @@ export type AreaTag = {
   totalPower?: number | null;
   description?: string | null;
   recordedBy?: string | null;
+  photoPath?: string | null;
   createdAt: string;
 };
 
@@ -104,6 +134,7 @@ export type Entry = {
   loadFactor: number;
   description?: string | null;
   recordedBy?: string | null;
+  photoPath?: string | null;
   createdAt: string;
   createdById: string;
 };
@@ -119,6 +150,9 @@ export type ApfcTag = {
   remark?: string | null;
   description?: string | null;
   recordedBy?: string | null;
+  photoPath?: string | null;
+  zoneId?: string | null;
+  areaId?: string | null;
   createdAt: string;
 };
 
@@ -133,6 +167,7 @@ export type SyncJob = {
     areas: AreaTag[];
     entries: Entry[];
     apfcs?: ApfcTag[];
+    energySources?: EnergySource[];
   };
 };
 
@@ -142,6 +177,7 @@ type AppState = {
   areas: AreaTag[];
   entries: Entry[];
   apfcs: ApfcTag[];
+  energySources: EnergySource[];
   syncQueue: SyncJob[];
   
   setProfile: (profile: CompanyProfile) => void;
@@ -161,6 +197,7 @@ type AppState = {
   updateApfc: (id: string, apfc: Partial<ApfcTag>) => void;
   deleteApfc: (id: string) => void;
   
+  setEnergySources: (sources: EnergySource[]) => void;
   wipeData: () => void;
 
   addJobToQueue: (job: SyncJob) => void;
@@ -176,6 +213,7 @@ export const useAppStore = create<AppState>()(
       areas: [],
       entries: [],
       apfcs: [],
+      energySources: [],
       syncQueue: [],
 
       setProfile: (profile) => set({ profile }),
@@ -218,7 +256,8 @@ export const useAppStore = create<AppState>()(
         apfcs: (state.apfcs || []).filter(a => a.id !== id)
       })),
 
-      wipeData: () => set({ profile: null, zones: [], areas: [], entries: [], apfcs: [], syncQueue: [] }),
+      setEnergySources: (sources) => set({ energySources: sources }),
+      wipeData: () => set({ profile: null, zones: [], areas: [], entries: [], apfcs: [], energySources: [], syncQueue: [] }),
 
       addJobToQueue: (job) => set((state) => {
         // Hard cap at 50 to prevent IndexedDB bloat

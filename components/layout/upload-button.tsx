@@ -3,7 +3,7 @@
 import React, { useRef, useState } from "react";
 import { Upload, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAppStore, CompanyProfile, ZoneTag, AreaTag, Entry, ApfcTag } from "@/lib/store";
+import { useAppStore, CompanyProfile, ZoneTag, AreaTag, Entry, ApfcTag, EnergySource } from "@/lib/store";
 import { useAuthStore } from "@/lib/auth-store";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -42,6 +42,7 @@ export function UploadButton() {
           `• Areas: ${summary.areasAdded} added, ${summary.areasUpdated} updated\n` +
           `• Motor Loads: ${summary.entriesAdded} added, ${summary.entriesUpdated} updated\n` +
           `• APFCs: ${summary.apfcAdded} added, ${summary.apfcUpdated} updated\n` +
+          `• Energy Sources: ${summary.energySourcesAdded} added, ${summary.energySourcesUpdated} updated\n` +
           `No duplicate records were created.`,
           { duration: 6000 }
         );
@@ -130,6 +131,7 @@ export function UploadButton() {
     const parsedAreas: any[] = [];
     const parsedEntries: any[] = [];
     const parsedApfcs: any[] = [];
+    const parsedEnergySources: any[] = [];
 
     // Iterate through sheet names and identify formats
     wb.SheetNames.forEach((sheetName) => {
@@ -233,19 +235,30 @@ export function UploadButton() {
         }
       }
 
-      // 3. MCC/PCC Areas sheet
-      else if (normName === "mcc-pcc areas" || normName === "mcc-pcc") {
+      // 3. PCC Panels or MCC Panels or legacy MCC/PCC Areas sheet
+      else if (
+        normName === "mcc-pcc areas" ||
+        normName === "mcc-pcc" ||
+        normName === "pcc panels" ||
+        normName === "pcc panel" ||
+        normName === "mcc panels" ||
+        normName === "mcc panel"
+      ) {
+        const isMccSheet = normName.includes("mcc") && !normName.includes("pcc");
+        const defaultType = isMccSheet ? "MCC" : "PCC";
+
         const headers = rows[0].map((h: any) => String(h || "").trim());
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
           if (!row || row.length === 0 || !row[0]) continue;
 
-          const a: any = {};
+          const a: any = { type: defaultType };
           headers.forEach((h: string, idx: number) => {
             const val = row[idx];
             const cleanHeader = h.toLowerCase();
             if (cleanHeader === "plant main input" || cleanHeader === "zone") a.parentZoneName = String(val || "").trim();
-            else if (cleanHeader === "mcc/pcc name" || cleanHeader === "mcc/pcc") a.name = String(val || "").trim();
+            else if (cleanHeader === "parent pcc panel" || cleanHeader === "parent pcc") a.parentPccName = String(val || "").trim();
+            else if (cleanHeader === "pcc name" || cleanHeader === "mcc name" || cleanHeader === "mcc/pcc name" || cleanHeader === "mcc/pcc" || cleanHeader === "name") a.name = String(val || "").trim();
             else if (cleanHeader === "pq name") a.pqName = val ? String(val).trim() : null;
             else if (cleanHeader === "recording id" || cleanHeader === "recording name id") a.recordingNameId = val ? String(val).trim() : null;
             else if (cleanHeader === "v1") a.v1 = val !== undefined && val !== "" ? Number(val) : null;
@@ -263,9 +276,10 @@ export function UploadButton() {
             else if (cleanHeader === "power factor" || cleanHeader === "pf") a.pf = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "kvar (d)" || cleanHeader === "kvard") a.kvarD = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "kvar (q)" || cleanHeader === "kvarq") a.kvarQ = val !== undefined && val !== "" ? Number(val) : null;
-            else if (cleanHeader === "kvar lead/lag" || cleanHeader === "lead/lag") a.kvarLeadLag = val ? String(val).trim() : "Lead";
+            else if (cleanHeader === "kvar lead/lag" || cleanHeader === "lead/lag") a.kvarLeadLag = val ? String(val).trim() : "Lag";
             else if (cleanHeader === "total power (kw)" || cleanHeader === "total power") a.totalPower = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "description") a.description = val ? String(val).trim() : null;
+            else if (cleanHeader === "photo path") a.photoPath = val ? String(val).trim() : null;
             else if (cleanHeader === "recorded by") a.recordedBy = val ? String(val).trim() : null;
             else if (cleanHeader === "date" || cleanHeader === "time") a.createdAt = parseExcelDate(val);
           });
@@ -288,8 +302,9 @@ export function UploadButton() {
           headers.forEach((h: string, idx: number) => {
             const val = row[idx];
             const cleanHeader = h.toLowerCase();
-            if (cleanHeader === "zone" || cleanHeader === "plant main input") e.parentZoneName = String(val || "").trim();
-            else if (cleanHeader === "area (mcc/pcc)" || cleanHeader === "mcc/pcc" || cleanHeader === "mcc-pcc") e.parentAreaName = String(val || "").trim();
+            if (cleanHeader === "zone" || cleanHeader === "plant main input" || cleanHeader === "zone (plant input)") e.parentZoneName = String(val || "").trim();
+            else if (cleanHeader === "area (mcc/pcc)" || cleanHeader === "mcc/pcc" || cleanHeader === "mcc-pcc" || cleanHeader === "mcc panel name" || cleanHeader === "mcc panel") e.parentAreaName = String(val || "").trim();
+            else if (cleanHeader === "parent pcc panel" || cleanHeader === "pcc panel") e.parentPccName = String(val || "").trim();
             else if (cleanHeader === "machine tag" || cleanHeader === "machinetag") e.machineTag = String(val || "").trim();
             else if (cleanHeader === "starter type" || cleanHeader === "startertype") e.starterType = String(val || "DOL").trim().toUpperCase();
             else if (cleanHeader === "vfd frequency") e.vfdFrequency = val !== undefined && val !== "" ? Number(val) : null;
@@ -304,11 +319,12 @@ export function UploadButton() {
             else if (cleanHeader === "calculated power (kw)" || cleanHeader === "calculatedpower(kw)") e.calculatedPower = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "load factor") e.loadFactor = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "description") e.description = val ? String(val).trim() : null;
+            else if (cleanHeader === "photo path") e.photoPath = val ? String(val).trim() : null;
             else if (cleanHeader === "recorded by") e.recordedBy = val ? String(val).trim() : null;
             else if (cleanHeader === "date" || cleanHeader === "time") e.createdAt = parseExcelDate(val);
           });
 
-          if (e.machineTag && e.parentAreaName) {
+          if (e.machineTag && (e.parentAreaName || e.parentPccName)) {
             if (!e.createdAt) e.createdAt = new Date().toISOString();
             parsedEntries.push(e);
           }
@@ -326,7 +342,9 @@ export function UploadButton() {
           headers.forEach((h: string, idx: number) => {
             const val = row[idx];
             const cleanHeader = h.toLowerCase();
-            if (cleanHeader === "stage") ap.stage = val !== undefined && val !== "" ? Number(val) : null;
+            if (cleanHeader === "location plant input" || cleanHeader === "plant input" || cleanHeader === "zone" || cleanHeader === "plant main input") ap.parentZoneName = String(val || "").trim();
+            else if (cleanHeader === "location panel" || cleanHeader === "panel") ap.parentAreaName = String(val || "").trim();
+            else if (cleanHeader === "stage") ap.stage = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "rated capacitor value") ap.ratedCapacitorValue = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "voltage") ap.voltage = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "i-r" || cleanHeader === "ir") ap.iR = val !== undefined && val !== "" ? Number(val) : null;
@@ -334,6 +352,7 @@ export function UploadButton() {
             else if (cleanHeader === "i-b" || cleanHeader === "ib") ap.iB = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "remark") ap.remark = val ? String(val).trim() : null;
             else if (cleanHeader === "description") ap.description = val ? String(val).trim() : null;
+            else if (cleanHeader === "photo path") ap.photoPath = val ? String(val).trim() : null;
             else if (cleanHeader === "recorded by") ap.recordedBy = val ? String(val).trim() : null;
             else if (cleanHeader === "date" || cleanHeader === "time") ap.createdAt = parseExcelDate(val);
           });
@@ -341,6 +360,45 @@ export function UploadButton() {
           if (ap.stage !== null) {
             if (!ap.createdAt) ap.createdAt = new Date().toISOString();
             parsedApfcs.push(ap);
+          }
+        }
+      }
+      
+      else if (normName === "energy sources" || normName === "energy source") {
+        const headers = rows[0].map((h: any) => String(h || "").trim());
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || row.length === 0 || row[0] === undefined) continue;
+
+          const es: any = {};
+          headers.forEach((h: string, idx: number) => {
+            const val = row[idx];
+            const cleanHeader = h.toLowerCase();
+            if (cleanHeader === "source name" || cleanHeader === "name") es.name = String(val || "").trim();
+            else if (cleanHeader === "source type" || cleanHeader === "type") es.sourceType = String(val || "Main Grid").trim();
+            else if (cleanHeader === "pq name") es.pqName = val ? String(val).trim() : null;
+            else if (cleanHeader === "recording id" || cleanHeader === "recording name id") es.recordingNameId = val ? String(val).trim() : null;
+            else if (cleanHeader === "v1") es.v1 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "v2") es.v2 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "v3") es.v3 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "uthd1") es.uthd1 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "uthd2") es.uthd2 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "uthd3") es.uthd3 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "i1") es.i1 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "i2") es.i2 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "i3") es.i3 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "ithd1") es.ithd1 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "ithd2") es.ithd2 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "ithd3") es.ithd3 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "power factor" || cleanHeader === "pf") es.pf = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "kvar (d)" || cleanHeader === "kvard") es.kvarD = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "kvar (q)" || cleanHeader === "kvarq") es.kvarQ = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "kvar style" || cleanHeader === "kvar lead/lag" || cleanHeader === "lead/lag") es.kvarLeadLag = val ? String(val).trim() : "Lag";
+            else if (cleanHeader === "total power" || cleanHeader === "total power (kw)") es.totalPower = val !== undefined && val !== "" ? Number(val) : null;
+          });
+
+          if (es.name) {
+            parsedEnergySources.push(es);
           }
         }
       }
@@ -402,7 +460,8 @@ export function UploadButton() {
         totalPower: pz.totalPower,
         pqName: pz.pqName, recordingNameId: pz.recordingNameId,
         description: pz.description,
-        recordedBy: pz.recordedBy || existingId ? (currentZones.find(x => x.id === existingId)?.recordedBy || currentUserName) : currentUserName,
+        recordedBy: pz.recordedBy || (existingId ? (currentZones.find(x => x.id === existingId)?.recordedBy || currentUserName) : currentUserName),
+        photoPath: pz.photoPath || null,
         createdAt: pz.createdAt
       };
 
@@ -465,6 +524,8 @@ export function UploadButton() {
         id: existingId || crypto.randomUUID(),
         zoneId: parentZoneId,
         name: pa.name,
+        type: pa.type || "PCC",
+        pccId: null, // resolved in second pass
         pqName: pa.pqName, recordingNameId: pa.recordingNameId,
         v1: pa.v1, v2: pa.v2, v3: pa.v3,
         uthd1: pa.uthd1, uthd2: pa.uthd2, uthd3: pa.uthd3,
@@ -473,6 +534,7 @@ export function UploadButton() {
         pf: pa.pf, kvarD: pa.kvarD, kvarQ: pa.kvarQ, kvarLeadLag: pa.kvarLeadLag,
         totalPower: pa.totalPower, description: pa.description,
         recordedBy: pa.recordedBy || (existingId ? (currentAreas.find(x => x.id === existingId)?.recordedBy || currentUserName) : currentUserName),
+        photoPath: pa.photoPath || null,
         createdAt: pa.createdAt
       };
 
@@ -500,6 +562,19 @@ export function UploadButton() {
         currentAreas.push(record);
         areaKeyToId[areaKey] = record.id;
         areasAdded++;
+      }
+    });
+
+    // 3b. Second pass to link MCC -> PCC panels
+    currentAreas.forEach((a) => {
+      if (a.type === "MCC") {
+        const parsedArea = parsedAreas.find(pa => pa.name.toLowerCase().trim() === a.name.toLowerCase().trim() && pa.type === "MCC");
+        if (parsedArea && parsedArea.parentPccName) {
+          const parentPcc = currentAreas.find(p => p.name.toLowerCase().trim() === parsedArea.parentPccName.toLowerCase().trim() && p.type === "PCC" && p.zoneId === a.zoneId);
+          if (parentPcc) {
+            a.pccId = parentPcc.id;
+          }
+        }
       }
     });
 
@@ -574,6 +649,7 @@ export function UploadButton() {
         loadFactor: pe.loadFactor || (pe.ratedKw ? Number((pe.measuredKw / pe.ratedKw).toFixed(3)) : 0),
         description: pe.description,
         recordedBy: pe.recordedBy || (existingId ? (currentEntries.find(x => x.id === existingId)?.recordedBy || currentUserName) : currentUserName),
+        photoPath: pe.photoPath || null,
         createdAt: pe.createdAt,
         createdById: "local-user"
       };
@@ -600,6 +676,15 @@ export function UploadButton() {
     parsedApfcs.forEach((pap) => {
       const existingId = stageToId[pap.stage];
 
+      let papZoneId = null;
+      if (pap.parentZoneName) {
+        papZoneId = zoneNameToId[pap.parentZoneName.toLowerCase().trim()] || null;
+      }
+      let papAreaId = null;
+      if (papZoneId && pap.parentAreaName) {
+        papAreaId = areaKeyToId[`${pap.parentZoneName.toLowerCase().trim()}|${pap.parentAreaName.toLowerCase().trim()}`] || null;
+      }
+
       const record: ApfcTag = {
         id: existingId || crypto.randomUUID(),
         stage: pap.stage,
@@ -608,6 +693,9 @@ export function UploadButton() {
         iR: pap.iR, iY: pap.iY, iB: pap.iB,
         remark: pap.remark,
         description: pap.description,
+        photoPath: pap.photoPath || null,
+        zoneId: papZoneId,
+        areaId: papAreaId,
         recordedBy: pap.recordedBy || (existingId ? (currentApfcs.find(x => x.id === existingId)?.recordedBy || currentUserName) : currentUserName),
         createdAt: pap.createdAt
       };
@@ -623,20 +711,57 @@ export function UploadButton() {
       }
     });
 
+    // 6. Merge Energy Sources
+    const currentEnergySources = [...useAppStore.getState().energySources];
+    let energySourcesAdded = 0;
+    let energySourcesUpdated = 0;
+
+    parsedEnergySources.forEach((pes) => {
+      const existing = currentEnergySources.find(
+        (es) => es.name.toLowerCase().trim() === pes.name.toLowerCase().trim()
+      );
+
+      const record: EnergySource = {
+        id: existing?.id || crypto.randomUUID(),
+        name: pes.name,
+        sourceType: pes.sourceType,
+        pqName: pes.pqName,
+        recordingNameId: pes.recordingNameId,
+        v1: pes.v1, v2: pes.v2, v3: pes.v3,
+        uthd1: pes.uthd1, uthd2: pes.uthd2, uthd3: pes.uthd3,
+        i1: pes.i1, i2: pes.i2, i3: pes.i3,
+        ithd1: pes.ithd1, ithd2: pes.ithd2, ithd3: pes.ithd3,
+        pf: pes.pf,
+        kvarD: pes.kvarD, kvarQ: pes.kvarQ, kvarLeadLag: pes.kvarLeadLag,
+        totalPower: pes.totalPower || 0
+      };
+
+      if (existing) {
+        const idx = currentEnergySources.findIndex((es) => es.id === existing.id);
+        currentEnergySources[idx] = record;
+        energySourcesUpdated++;
+      } else {
+        currentEnergySources.push(record);
+        energySourcesAdded++;
+      }
+    });
+
     // Write all states to the Zustand store atomically
     useAppStore.setState({
       profile: finalProfile,
       zones: currentZones,
       areas: currentAreas,
       entries: currentEntries,
-      apfcs: currentApfcs
+      apfcs: currentApfcs,
+      energySources: currentEnergySources
     });
 
     return {
       zonesAdded, zonesUpdated,
       areasAdded, areasUpdated,
       entriesAdded, entriesUpdated,
-      apfcAdded, apfcUpdated
+      apfcAdded, apfcUpdated,
+      energySourcesAdded, energySourcesUpdated
     };
   };
 

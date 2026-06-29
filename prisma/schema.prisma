@@ -31,12 +31,42 @@ model CompanyProfile {
   pincode            String
   overallConsumption Float    @default(0)
   updatedAt          DateTime @updatedAt
+  energySources      EnergySource[]
+}
+
+model EnergySource {
+  id               String          @id @default(cuid())
+  companyProfileId String?
+  companyProfile   CompanyProfile? @relation(fields: [companyProfileId], references: [id], onDelete: Cascade)
+  name             String
+  sourceType       String          // "Main Grid" | "Solar" | "Wind"
+  pqName           String?
+  recordingNameId  String?
+  v1               Float?
+  v2               Float?
+  v3               Float?
+  uthd1            Float?
+  uthd2            Float?
+  uthd3            Float?
+  i1               Float?
+  i2               Float?
+  i3               Float?
+  ithd1            Float?
+  ithd2            Float?
+  ithd3            Float?
+  pf               Float?
+  kvarD            Float?
+  kvarQ            Float?
+  kvarLeadLag      String?
+  totalPower       Float?
+  createdAt        DateTime        @default(now())
 }
 
 model ZoneTag {
   id          String   @id @default(cuid())
   name        String
   recordedBy  String?
+  photoPath   String?
   
   v1          Float?
   v2          Float?
@@ -69,6 +99,9 @@ model AreaTag {
   zoneId      String
   zone        ZoneTag  @relation(fields: [zoneId], references: [id], onDelete: Cascade)
   name        String
+  type        String?
+  pccId       String?
+  photoPath   String?
   recordedBy  String?
   
   pqName      String?
@@ -103,6 +136,7 @@ model Entry {
   machineTag      String
   starterType     StarterType
   vfdFrequency    Float?
+  photoPath       String?
   
   ratedKw         Float
   ratedHp         Float?
@@ -136,6 +170,9 @@ model ApfcTag {
   remark             String?
   description        String?
   recordedBy         String?
+  photoPath          String?
+  zoneId             String?
+  areaId             String?
   createdAt          DateTime @default(now())
 }
 

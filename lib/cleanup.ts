@@ -27,6 +27,8 @@ export async function checkAndWipeStaleData() {
       await prisma.entry.deleteMany();
       await prisma.areaTag.deleteMany();
       await prisma.zoneTag.deleteMany();
+      await prisma.apfcTag.deleteMany();
+      await prisma.energySource.deleteMany();
       await prisma.companyProfile.deleteMany();
     }
   } catch (error) {

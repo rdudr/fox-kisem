@@ -16,6 +16,7 @@ export async function GET() {
     include: { area: { include: { zone: true } }, createdBy: true },
     orderBy: { createdAt: "desc" },
   });
+  const energySources = await prisma.energySource.findMany({ orderBy: { createdAt: "desc" } });
 
   const reporterName = user?.displayName || user?.username || "Unknown";
   const companyName = profile?.companyName ? profile.companyName.toUpperCase() : "UNKNOWN COMPANY";
@@ -130,12 +131,37 @@ export async function GET() {
   });
   const ws5 = XLSX.utils.aoa_to_sheet([apfcHeaders, ...apfcDataRows]);
 
+  // --- SHEET 6: Energy Sources ---
+  const energySourceHeaders = [
+    "Source Name", "Source Type", "PQ Name", "Recording ID",
+    "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3",
+    "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3",
+    "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag",
+    "Total Power (kW)", "Date"
+  ];
+  const energySourceDataRows = energySources.map(es => [
+    es.name,
+    es.sourceType,
+    es.pqName || "",
+    es.recordingNameId || "",
+    f2(es.v1), f2(es.v2), f2(es.v3),
+    f2(es.uthd1), f2(es.uthd2), f2(es.uthd3),
+    f2(es.i1), f2(es.i2), f2(es.i3),
+    f2(es.ithd1), f2(es.ithd2), f2(es.ithd3),
+    f3(es.pf), f2(es.kvarD), f2(es.kvarQ),
+    es.kvarLeadLag || "",
+    f2(es.totalPower),
+    new Date(es.createdAt).toLocaleString("en-IN")
+  ]);
+  const ws6 = XLSX.utils.aoa_to_sheet([energySourceHeaders, ...energySourceDataRows]);
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws1, "Plant Main Input");
   XLSX.utils.book_append_sheet(wb, ws2, "PCC Panels");
   XLSX.utils.book_append_sheet(wb, ws3, "MCC Panels");
   XLSX.utils.book_append_sheet(wb, ws4, "Motor Load");
   XLSX.utils.book_append_sheet(wb, ws5, "APFC");
+  XLSX.utils.book_append_sheet(wb, ws6, "Energy Sources");
 
   // Output buffer
   const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -144,6 +170,8 @@ export async function GET() {
   await prisma.entry.deleteMany();
   await prisma.areaTag.deleteMany();
   await prisma.zoneTag.deleteMany();
+  await prisma.apfcTag.deleteMany();
+  await prisma.energySource.deleteMany();
   await prisma.companyProfile.deleteMany();
 
   const now = new Date();

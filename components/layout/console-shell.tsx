@@ -14,7 +14,8 @@ const nav = [
   { href: "/zones", label: "Plant Main Input", icon: MapPinned },
   { href: "/pcc", label: "PCC Panel", icon: MapPinned },
   { href: "/mcc", label: "MCC Panel", icon: MapPinned },
-  { href: "/machines", label: "Motor Load", icon: FileSpreadsheet },
+  { href: "/machines", label: "Motor Load Clamp", icon: FileSpreadsheet },
+  { href: "/machines-pq", label: "Motor Load PQ", icon: FileSpreadsheet },
   { href: "/apfc", label: "APFC", icon: FileSpreadsheet },
 ];
 

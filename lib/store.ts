@@ -137,6 +137,26 @@ export type Entry = {
   photoPath?: string | null;
   createdAt: string;
   createdById: string;
+  
+  // New fields for PQ support
+  entryType?: 'CLAMP' | 'PQ' | null;
+  pqName?: string | null;
+  recordingNameId?: string | null;
+  v1?: number | null;
+  v2?: number | null;
+  v3?: number | null;
+  uthd1?: number | null;
+  uthd2?: number | null;
+  uthd3?: number | null;
+  i1?: number | null;
+  i2?: number | null;
+  i3?: number | null;
+  ithd1?: number | null;
+  ithd2?: number | null;
+  ithd3?: number | null;
+  kvarD?: number | null;
+  kvarQ?: number | null;
+  kvarLeadLag?: string | null;
 };
 
 export type ApfcTag = {

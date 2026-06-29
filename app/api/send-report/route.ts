@@ -54,14 +54,66 @@ export async function POST(req: Request) {
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([mccHeaders, ...mccRows]), "MCC Panels");
 
-    // Sheet 5: Motor Loads
-    const entryHeaders = ["Zone","Area (MCC/PCC)","Machine Tag","Starter Type","Rated kW","Rated HP","Voltage (V)","Current (A)","KVA","Power Factor","KVAr","Measured kW","Calculated Power (kW)","Load Factor","Description","Photo Path","Date"];
-    const entryRows = (entries ?? []).map((e: any) => {
+    // Sheet 5: Motor Loads Clamp
+    const clampEntries = (entries ?? []).filter((e: any) => !e.entryType || e.entryType === "CLAMP");
+    const clampHeaders = ["Zone","Area (MCC/PCC)","Machine Tag","Starter Type","Rated kW","Rated HP","Voltage (V)","Current (A)","KVA","Power Factor","KVAr","Measured kW","Calculated Power (kW)","Load Factor","Description","Photo Path","Date"];
+    const clampRows = clampEntries.map((e: any) => {
       const area = (areas ?? []).find((a: any) => a.id === e.areaId);
       const zone = (zones ?? []).find((z: any) => z.id === area?.zoneId);
       return [(zone?.name??"Unknown"),(area?.name??"Unknown"),e.machineTag,e.starterType,e.ratedKw,(e.ratedHp??""),(e.voltage??""),(e.current??""),(e.kva??""),(e.pf??""),(e.kvar??""),e.measuredKw,Number(e.calculatedPower).toFixed(2),Number(e.loadFactor).toFixed(3),(e.description??""),e.photoPath??"",new Date(e.createdAt).toLocaleString("en-IN")];
     });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([entryHeaders, ...entryRows]), "Motor Loads");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([clampHeaders, ...clampRows]), "Motor Loads Clamp");
+
+    // Sheet 6: Motor Loads PQ
+    const pqEntries = (entries ?? []).filter((e: any) => e.entryType === "PQ");
+    const pqHeaders = [
+      "Zone (Plant Input)", "Parent PCC Panel", "MCC Panel Name", "Machine Tag", "PQ Name", "Recording ID",
+      "Starter Type", "VFD Frequency",
+      "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3",
+      "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3",
+      "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag",
+      "Rated kW", "Rated HP", "Voltage (Avg)", "Current (Avg)", "KVA",
+      "Measured kW", "Calculated Power (kW)", "Load Factor",
+      "Description", "Photo Path", "Recorded By", "Date"
+    ];
+    const pqRows = pqEntries.map((e: any) => {
+      const area = (areas ?? []).find((a: any) => a.id === e.areaId);
+      const zone = (zones ?? []).find((z: any) => z.id === area?.zoneId);
+      
+      let pccName = "";
+      let mccName = "";
+      if (area) {
+        if (area.type === "MCC") {
+          mccName = area.name;
+          const parentPcc = (areas ?? []).find((p: any) => p.id === area.pccId);
+          pccName = parentPcc ? parentPcc.name : "Direct Feed";
+        } else {
+          pccName = area.name;
+          mccName = "Direct (No MCC)";
+        }
+      }
+
+      return [
+        zone?.name ?? "Unknown",
+        pccName || "Unknown",
+        mccName || "Unknown",
+        e.machineTag, e.pqName ?? "", e.recordingNameId ?? "",
+        e.starterType, e.vfdFrequency ?? "",
+        e.v1 ?? "", e.v2 ?? "", e.v3 ?? "",
+        e.uthd1 ?? "", e.uthd2 ?? "", e.uthd3 ?? "",
+        e.i1 ?? "", e.i2 ?? "", e.i3 ?? "",
+        e.ithd1 ?? "", e.ithd2 ?? "", e.ithd3 ?? "",
+        e.pf ?? "", e.kvarD ?? "", e.kvarQ ?? "", e.kvarLeadLag ?? "",
+        e.ratedKw, e.ratedHp ?? "", e.voltage ?? "", e.current ?? "",
+        e.kva ?? "",
+        e.measuredKw,
+        Number(e.calculatedPower).toFixed(2),
+        Number(e.loadFactor).toFixed(3),
+        e.description ?? "", e.photoPath ?? "", e.recordedBy ?? "Unknown",
+        new Date(e.createdAt).toLocaleString("en-IN"),
+      ];
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([pqHeaders, ...pqRows]), "Motor Loads PQ");
 
     // Sheet 6: APFC
     const apfcHeaders = ["Location Plant Input","Location Panel","Stage","Rated Capacitor Value","Voltage","I-R","I-Y","I-B","Remark","Description","Photo Path","Date"];
@@ -128,7 +180,8 @@ export async function POST(req: Request) {
     <li>Energy Sources: ${(energySources ?? []).length}</li>
     <li>Zones Recorded: ${zones.length}</li>
     <li>MCC/PCC Areas: ${areas.length}</li>
-    <li>Motor Load Entries: ${entries.length}</li>
+    <li>Motor Load Clamp Entries: ${clampEntries.length}</li>
+    <li>Motor Load PQ Entries: ${pqEntries.length}</li>
   </ul>
   <p>Please find the detailed Excel report attached for your reference and further analysis.</p>
   <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">

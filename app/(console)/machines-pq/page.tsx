@@ -14,7 +14,7 @@ import { StarterType } from "@prisma/client";
 import { Camera, Image as ImageIcon } from "lucide-react";
 import { capturePhotoFromDevice, savePhotoLocally, getFormattedDate, sanitizeName } from "@/lib/photo-capture";
 
-export default function MotorLoadPage() {
+export default function MotorLoadPQPage() {
   const [form, setForm] = useState({
     zoneId: "",
     pccId: "",
@@ -24,13 +24,19 @@ export default function MotorLoadPage() {
     vfdFrequency: "",
     ratedKw: "",
     ratedHp: "",
-    voltage: "",
-    current: "",
-    kva: "",
-    pf: "",
-    kvar: "",
     measuredKw: "",
     description: "",
+    // PQ fields
+    pqName: "",
+    recordingNameId: "",
+    v1: "", v2: "", v3: "",
+    uthd1: "", uthd2: "", uthd3: "",
+    i1: "", i2: "", i3: "",
+    ithd1: "", ithd2: "", ithd3: "",
+    pf: "",
+    kvarD: "",
+    kvarQ: "",
+    kvarLeadLag: "Lag",
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -47,7 +53,6 @@ export default function MotorLoadPage() {
   const updateEntryAction = useAppStore((state) => state.updateEntry);
   const deleteEntryAction = useAppStore((state) => state.deleteEntry);
 
-  const clampEntries = entries.filter(e => !e.entryType || e.entryType === "CLAMP");
   const pccPanels = areas.filter(a => a.type === "PCC");
   const mccPanels = areas.filter(a => a.type === "MCC");
 
@@ -106,14 +111,28 @@ export default function MotorLoadPage() {
   }, [form.ratedKw]);
 
   // Real-time calculation logic
-  const v = Number(form.voltage || 0);
-  const i = Number(form.current || 0);
+  const v1 = Number(form.v1 || 0);
+  const v2 = Number(form.v2 || 0);
+  const v3 = Number(form.v3 || 0);
+  const i1 = Number(form.i1 || 0);
+  const i2 = Number(form.i2 || 0);
+  const i3 = Number(form.i3 || 0);
   const pf = Number(form.pf || 0);
   const mKw = Number(form.measuredKw || 0);
 
-  const calculatedPower = (1.732 * v * i * pf) / 1000;
+  let avgV = 0;
+  let avgI = 0;
+  const vCount = (form.v1 ? 1 : 0) + (form.v2 ? 1 : 0) + (form.v3 ? 1 : 0);
+  const iCount = (form.i1 ? 1 : 0) + (form.i2 ? 1 : 0) + (form.i3 ? 1 : 0);
+
+  if (vCount > 0) avgV = (v1 + v2 + v3) / vCount;
+  if (iCount > 0) avgI = (i1 + i2 + i3) / iCount;
+
+  const calculatedPower = avgV > 0 && avgI > 0 && pf > 0 ? (1.732 * avgV * avgI * pf) / 1000 : 0;
   const loadFactor = form.ratedKw ? mKw / Number(form.ratedKw) : 0;
   const isCritical = loadFactor > 1.3;
+
+  const pqEntries = entries.filter(e => e.entryType === "PQ");
 
   async function handleCapturePhoto() {
     try {
@@ -126,7 +145,6 @@ export default function MotorLoadPage() {
   }
 
   async function addEntry() {
-    // Direct parent panel can be MCC (if selected) or PCC (if MCC not selected)
     const directParentAreaId = form.mccId || form.pccId;
 
     if (!directParentAreaId) return toast.error("Select a PCC or MCC Panel first");
@@ -148,8 +166,8 @@ export default function MotorLoadPage() {
         
         const dateStr = getFormattedDate();
 
-        // Path format: motorx_pccname_mccname_ddmm.jpg
-        const fileName = `${cleanMachine}_${cleanPccName}_${cleanMccName}_${dateStr}`;
+        // Path format: pq_motorx_pccname_mccname_ddmm.jpg
+        const fileName = `pq_${cleanMachine}_${cleanPccName}_${cleanMccName}_${dateStr}`;
         savedPath = await savePhotoLocally(capturedPhoto, fileName);
       } catch (photoErr: any) {
         toast.error("Failed to save photo locally: " + photoErr.message);
@@ -165,11 +183,11 @@ export default function MotorLoadPage() {
       vfdFrequency: form.starterType === "VFD" && form.vfdFrequency ? Number(form.vfdFrequency) : undefined,
       ratedKw: Number(form.ratedKw),
       ratedHp: form.ratedHp ? Number(form.ratedHp) : undefined,
-      voltage: form.voltage ? Number(form.voltage) : undefined,
-      current: form.current ? Number(form.current) : undefined,
-      kva: form.kva ? Number(form.kva) : undefined,
+      voltage: avgV || undefined,
+      current: avgI || undefined,
+      kva: avgV && avgI ? (1.732 * avgV * avgI) / 1000 : undefined,
       pf: form.pf ? Number(form.pf) : undefined,
-      kvar: form.kvar ? Number(form.kvar) : undefined,
+      kvar: form.kvarD ? Number(form.kvarD) : undefined, // fallback to kvarD
       measuredKw: Number(form.measuredKw),
       calculatedPower: calculatedPower,
       loadFactor: loadFactor,
@@ -182,15 +200,34 @@ export default function MotorLoadPage() {
         ? (entries.find(e => e.id === editingId)?.createdAt || new Date().toISOString())
         : new Date().toISOString(),
       createdById: "local-user",
-      entryType: "CLAMP" as const,
+      
+      // PQ fields
+      entryType: "PQ" as const,
+      pqName: form.pqName || undefined,
+      recordingNameId: form.recordingNameId || undefined,
+      v1: form.v1 ? Number(form.v1) : undefined,
+      v2: form.v2 ? Number(form.v2) : undefined,
+      v3: form.v3 ? Number(form.v3) : undefined,
+      uthd1: form.uthd1 ? Number(form.uthd1) : undefined,
+      uthd2: form.uthd2 ? Number(form.uthd2) : undefined,
+      uthd3: form.uthd3 ? Number(form.uthd3) : undefined,
+      i1: form.i1 ? Number(form.i1) : undefined,
+      i2: form.i2 ? Number(form.i2) : undefined,
+      i3: form.i3 ? Number(form.i3) : undefined,
+      ithd1: form.ithd1 ? Number(form.ithd1) : undefined,
+      ithd2: form.ithd2 ? Number(form.ithd2) : undefined,
+      ithd3: form.ithd3 ? Number(form.ithd3) : undefined,
+      kvarD: form.kvarD ? Number(form.kvarD) : undefined,
+      kvarQ: form.kvarQ ? Number(form.kvarQ) : undefined,
+      kvarLeadLag: form.kvarLeadLag,
     };
     
     if (editingId) {
       updateEntryAction(editingId, payload);
-      toast.success("Motor Load updated locally");
+      toast.success("Motor Load PQ updated locally");
     } else {
       addEntryAction(payload);
-      toast.success("Motor Load added locally");
+      toast.success("Motor Load PQ added locally");
     }
     
     resetForm();
@@ -205,13 +242,18 @@ export default function MotorLoadPage() {
       vfdFrequency: "",
       ratedKw: "",
       ratedHp: "",
-      voltage: "",
-      current: "",
-      kva: "",
-      pf: "",
-      kvar: "",
       measuredKw: "",
       description: "",
+      pqName: "",
+      recordingNameId: "",
+      v1: "", v2: "", v3: "",
+      uthd1: "", uthd2: "", uthd3: "",
+      i1: "", i2: "", i3: "",
+      ithd1: "", ithd2: "", ithd3: "",
+      pf: "",
+      kvarD: "",
+      kvarQ: "",
+      kvarLeadLag: "Lag",
     }));
     setCapturedPhoto(null);
     setExistingPhotoPath(null);
@@ -245,13 +287,26 @@ export default function MotorLoadPage() {
       vfdFrequency: e.vfdFrequency?.toString() || "",
       ratedKw: e.ratedKw?.toString() || "",
       ratedHp: e.ratedHp?.toString() || "",
-      voltage: e.voltage?.toString() || "",
-      current: e.current?.toString() || "",
-      kva: e.kva?.toString() || "",
-      pf: e.pf?.toString() || "",
-      kvar: e.kvar?.toString() || "",
       measuredKw: e.measuredKw?.toString() || "",
       description: e.description || "",
+      pqName: e.pqName || "",
+      recordingNameId: e.recordingNameId || "",
+      v1: e.v1?.toString() || "",
+      v2: e.v2?.toString() || "",
+      v3: e.v3?.toString() || "",
+      uthd1: e.uthd1?.toString() || "",
+      uthd2: e.uthd2?.toString() || "",
+      uthd3: e.uthd3?.toString() || "",
+      i1: e.i1?.toString() || "",
+      i2: e.i2?.toString() || "",
+      i3: e.i3?.toString() || "",
+      ithd1: e.ithd1?.toString() || "",
+      ithd2: e.ithd2?.toString() || "",
+      ithd3: e.ithd3?.toString() || "",
+      pf: e.pf?.toString() || "",
+      kvarD: e.kvarD?.toString() || "",
+      kvarQ: e.kvarQ?.toString() || "",
+      kvarLeadLag: e.kvarLeadLag || "Lag",
     });
 
     setExistingPhotoPath(e.photoPath || null);
@@ -260,9 +315,9 @@ export default function MotorLoadPage() {
   }
 
   function handleDelete(id: string) {
-    if (confirm("Delete this motor load entry?")) {
+    if (confirm("Delete this motor load PQ entry?")) {
       deleteEntryAction(id);
-      toast.success("Motor Load deleted");
+      toast.success("Motor Load PQ deleted");
       if (editingId === id) resetForm();
     }
   }
@@ -271,11 +326,11 @@ export default function MotorLoadPage() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>{editingId ? "Edit Motor Load Clamp details" : "Add Motor Load Clamp details"}</CardTitle>
+          <CardTitle>{editingId ? "Edit Motor Load PQ details" : "Add Motor Load PQ details"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             <div>
               <Label>Plant Main Input</Label>
               <select 
@@ -311,12 +366,32 @@ export default function MotorLoadPage() {
                 {filteredMccPanels.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </div>
+          </div>
 
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 pt-2 border-t border-white/5">
             <div>
-              <Label>Machine tag</Label>
-              <Input value={form.machineTag} onChange={(e) => setForm({ ...form, machineTag: e.target.value })} placeholder="e.g. Motor-1" />
+              <Label>Machine Tag / Name</Label>
+              <Input value={form.machineTag} onChange={(e) => setForm({ ...form, machineTag: e.target.value })} placeholder="e.g. PQ-Motor-1" />
             </div>
-            
+            <div>
+              <Label>PQ Name</Label>
+              <select 
+                className="h-9 w-full rounded-md border border-white/10 bg-slate-950/50 px-2 text-sm" 
+                value={form.pqName} 
+                onChange={(e) => setForm({...form, pqName: e.target.value})}
+              >
+                <option value="">Select...</option>
+                <option value="Hioki">Hioki</option>
+                <option value="ALM36">ALM36</option>
+                <option value="ALM31">ALM31</option>
+                <option value="ALM45">ALM45</option>
+                <option value="LM20">LM20</option>
+              </select>
+            </div>
+            <div>
+              <Label>Recording ID</Label>
+              <Input value={form.recordingNameId} onChange={(e) => setForm({ ...form, recordingNameId: e.target.value })} placeholder="e.g. REC002" />
+            </div>
             <div>
               <Label>Starter</Label>
               <select 
@@ -330,21 +405,46 @@ export default function MotorLoadPage() {
                 <option value="DOL">DOL</option>
               </select>
             </div>
+          </div>
 
+          <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6 pt-2 border-t border-white/5">
+            <div><Label>V1</Label><Input type="number" value={form.v1} onChange={(e) => setForm({...form, v1: e.target.value})} /></div>
+            <div><Label>V2</Label><Input type="number" value={form.v2} onChange={(e) => setForm({...form, v2: e.target.value})} /></div>
+            <div><Label>V3</Label><Input type="number" value={form.v3} onChange={(e) => setForm({...form, v3: e.target.value})} /></div>
+            <div><Label>Uthd1 (%)</Label><Input type="number" value={form.uthd1} onChange={(e) => setForm({...form, uthd1: e.target.value})} /></div>
+            <div><Label>Uthd2 (%)</Label><Input type="number" value={form.uthd2} onChange={(e) => setForm({...form, uthd2: e.target.value})} /></div>
+            <div><Label>Uthd3 (%)</Label><Input type="number" value={form.uthd3} onChange={(e) => setForm({...form, uthd3: e.target.value})} /></div>
+            
+            <div><Label>I1</Label><Input type="number" value={form.i1} onChange={(e) => setForm({...form, i1: e.target.value})} /></div>
+            <div><Label>I2</Label><Input type="number" value={form.i2} onChange={(e) => setForm({...form, i2: e.target.value})} /></div>
+            <div><Label>I3</Label><Input type="number" value={form.i3} onChange={(e) => setForm({...form, i3: e.target.value})} /></div>
+            <div><Label>Ithd1 (%)</Label><Input type="number" value={form.ithd1} onChange={(e) => setForm({...form, ithd1: e.target.value})} /></div>
+            <div><Label>Ithd2 (%)</Label><Input type="number" value={form.ithd2} onChange={(e) => setForm({...form, ithd2: e.target.value})} /></div>
+            <div><Label>Ithd3 (%)</Label><Input type="number" value={form.ithd3} onChange={(e) => setForm({...form, ithd3: e.target.value})} /></div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5 pt-2 border-t border-white/5">
+            <div><Label>Power Factor (PF)</Label><Input type="number" step="0.001" value={form.pf} onChange={(e) => setForm({...form, pf: e.target.value})} /></div>
+            <div><Label>KVAr (D)</Label><Input type="number" value={form.kvarD} onChange={(e) => setForm({...form, kvarD: e.target.value})} /></div>
+            <div><Label>KVAr (Q)</Label><Input type="number" value={form.kvarQ} onChange={(e) => setForm({...form, kvarQ: e.target.value})} /></div>
+            <div>
+              <Label>KVAr Style</Label>
+              <div className="flex gap-2 mt-1">
+                <Button type="button" variant={form.kvarLeadLag === "Lead" ? "default" : "secondary"} className="flex-1 h-9 text-xs" onClick={() => setForm({...form, kvarLeadLag: "Lead"})}>Lead</Button>
+                <Button type="button" variant={form.kvarLeadLag === "Lag" ? "default" : "secondary"} className="flex-1 h-9 text-xs" onClick={() => setForm({...form, kvarLeadLag: "Lag"})}>Lag</Button>
+              </div>
+            </div>
             {form.starterType === "VFD" && (
               <div>
                 <Label>VFD Frequency (Hz)</Label>
                 <Input type="number" value={form.vfdFrequency} onChange={(e) => setForm({ ...form, vfdFrequency: e.target.value })} />
               </div>
             )}
-            
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 pt-2 border-t border-white/5">
             <div><Label>Rated kW</Label><Input type="number" value={form.ratedKw} onChange={(e) => setForm({ ...form, ratedKw: e.target.value })} /></div>
             <div><Label>Rated HP</Label><Input type="number" value={form.ratedHp} onChange={(e) => setForm({ ...form, ratedHp: e.target.value })} /></div>
-            <div><Label>Voltage</Label><Input type="number" value={form.voltage} onChange={(e) => setForm({ ...form, voltage: e.target.value })} /></div>
-            <div><Label>Current</Label><Input type="number" value={form.current} onChange={(e) => setForm({ ...form, current: e.target.value })} /></div>
-            <div><Label>KVA</Label><Input type="number" value={form.kva} onChange={(e) => setForm({ ...form, kva: e.target.value })} /></div>
-            <div><Label>Power Factor (PF)</Label><Input type="number" step="0.001" value={form.pf} onChange={(e) => setForm({ ...form, pf: e.target.value })} /></div>
-            <div><Label>KVAr</Label><Input type="number" value={form.kvar} onChange={(e) => setForm({ ...form, kvar: e.target.value })} /></div>
             <div><Label>Measured kW</Label><Input type="number" value={form.measuredKw} onChange={(e) => setForm({ ...form, measuredKw: e.target.value })} /></div>
           </div>
 
@@ -406,7 +506,7 @@ export default function MotorLoadPage() {
           </div>
 
           <div className="flex items-end gap-2">
-            <Button onClick={() => void addEntry()}>{editingId ? "Update Entry" : "Add Motor Load"}</Button>
+            <Button onClick={() => void addEntry()}>{editingId ? "Update Entry" : "Add Motor Load PQ"}</Button>
             {editingId && <Button variant="secondary" onClick={resetForm}>Cancel</Button>}
           </div>
         </CardContent>
@@ -414,16 +514,17 @@ export default function MotorLoadPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Motor Load Clamp Records</CardTitle>
+          <CardTitle>Motor Load PQ Records</CardTitle>
         </CardHeader>
         <CardContent>
-          {clampEntries.length > 0 ? (
+          {pqEntries.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-slate-400 border-b border-white/10">
                     <th className="text-left px-2 py-2">Plant / Panel</th>
                     <th className="text-left px-2 py-2">Machine</th>
+                    <th className="text-left px-2 py-2">PQ Name</th>
                     <th className="text-left px-2 py-2">Rated kW</th>
                     <th className="text-left px-2 py-2">Meas. kW</th>
                     <th className="text-left px-2 py-2">Calc. Pwr</th>
@@ -432,7 +533,7 @@ export default function MotorLoadPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {clampEntries.map((e) => {
+                  {pqEntries.map((e) => {
                     const area = areas.find(a => a.id === e.areaId);
                     const zone = zones.find(z => z.id === area?.zoneId);
                     
@@ -457,6 +558,7 @@ export default function MotorLoadPage() {
                             <span className="text-[10px] text-slate-500">{zone?.name || "Unknown Zone"}</span>
                           </td>
                           <td className="px-2 py-3 font-mono font-bold text-cyan-300">{e.machineTag}</td>
+                          <td className="px-2 py-3 text-slate-300">{e.pqName || "N/A"}</td>
                           <td className="px-2 py-3 text-slate-300">{e.ratedKw}</td>
                           <td className="px-2 py-3 text-slate-300">{e.measuredKw}</td>
                           <td className="px-2 py-3 text-cyan-400">{Number(e.calculatedPower ?? 0).toFixed(2)} kW</td>
@@ -469,16 +571,19 @@ export default function MotorLoadPage() {
                         </tr>
                         {expanded === e.id && (
                           <tr className="bg-slate-900/50">
-                            <td colSpan={7} className="px-4 py-3">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-slate-300">
+                            <td colSpan={8} className="px-4 py-3">
+                              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-slate-300">
                                 <div><span className="block text-[10px] uppercase text-slate-500">Starter</span>{e.starterType}</div>
                                 {e.starterType === "VFD" && <div><span className="block text-[10px] uppercase text-slate-500">VFD Frequency</span>{e.vfdFrequency ?? "N/A"} Hz</div>}
                                 <div><span className="block text-[10px] uppercase text-slate-500">HP</span>{e.ratedHp ?? "N/A"}</div>
-                                <div><span className="block text-[10px] uppercase text-slate-500">Voltage</span>{e.voltage ?? "N/A"}</div>
-                                <div><span className="block text-[10px] uppercase text-slate-500">Current</span>{e.current ?? "N/A"}</div>
-                                <div><span className="block text-[10px] uppercase text-slate-500">KVA</span>{e.kva ?? "N/A"}</div>
+                                <div><span className="block text-[10px] uppercase text-slate-500">Recording ID</span>{e.recordingNameId || "N/A"}</div>
+                                <div><span className="block text-[10px] uppercase text-slate-500">V1 / V2 / V3</span>{e.v1 ?? "-"}{e.v2 !== undefined ? ` / ${e.v2}` : ""}{e.v3 !== undefined ? ` / ${e.v3}` : ""}</div>
+                                <div><span className="block text-[10px] uppercase text-slate-500">Uthd 1 / 2 / 3</span>{e.uthd1 ?? "-"}{e.uthd2 !== undefined ? ` / ${e.uthd2}` : ""}{e.uthd3 !== undefined ? ` / ${e.uthd3}` : ""}</div>
+                                <div><span className="block text-[10px] uppercase text-slate-500">I1 / I2 / I3</span>{e.i1 ?? "-"}{e.i2 !== undefined ? ` / ${e.i2}` : ""}{e.i3 !== undefined ? ` / ${e.i3}` : ""}</div>
+                                <div><span className="block text-[10px] uppercase text-slate-500">Ithd 1 / 2 / 3</span>{e.ithd1 ?? "-"}{e.ithd2 !== undefined ? ` / ${e.ithd2}` : ""}{e.ithd3 !== undefined ? ` / ${e.ithd3}` : ""}</div>
                                 <div><span className="block text-[10px] uppercase text-slate-500">PF</span>{e.pf ?? "N/A"}</div>
-                                <div><span className="block text-[10px] uppercase text-slate-500">KVAr</span>{e.kvar ?? "N/A"}</div>
+                                <div><span className="block text-[10px] uppercase text-slate-500">KVAr (D) / KVAr (Q)</span>{e.kvarD ?? "-"} / {e.kvarQ ?? "-"}</div>
+                                <div><span className="block text-[10px] uppercase text-slate-500">KVAr Style</span>{e.kvarLeadLag ?? "N/A"}</div>
                                 <div className="col-span-2">
                                   <span className="block text-[10px] uppercase text-slate-500">Photo Path</span>
                                   <span className="text-[10px] font-mono break-all text-slate-400">{e.photoPath || "No photo captured"}</span>
@@ -499,7 +604,7 @@ export default function MotorLoadPage() {
               </table>
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">No motor load clamp entries recorded yet.</p>
+            <p className="text-slate-400 text-sm">No motor load PQ entries recorded yet.</p>
           )}
         </CardContent>
       </Card>

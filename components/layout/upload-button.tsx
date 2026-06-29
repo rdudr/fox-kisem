@@ -292,13 +292,21 @@ export function UploadButton() {
       }
 
       // 4. Motor Loads / Entries sheet
-      else if (normName === "motor loads" || normName === "motor load") {
+      else if (
+        normName === "motor loads clamp" ||
+        normName === "motor load clamp" ||
+        normName === "motor loads" ||
+        normName === "motor load" ||
+        normName === "motor loads pq" ||
+        normName === "motor load pq"
+      ) {
+        const isPQ = normName.includes("pq");
         const headers = rows[0].map((h: any) => String(h || "").trim());
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          if (!row || row.length === 0 || !row[2]) continue; // tag must be present
+          if (!row || row.length === 0) continue;
 
-          const e: any = {};
+          const e: any = { entryType: isPQ ? "PQ" : "CLAMP" };
           headers.forEach((h: string, idx: number) => {
             const val = row[idx];
             const cleanHeader = h.toLowerCase();
@@ -306,15 +314,32 @@ export function UploadButton() {
             else if (cleanHeader === "area (mcc/pcc)" || cleanHeader === "mcc/pcc" || cleanHeader === "mcc-pcc" || cleanHeader === "mcc panel name" || cleanHeader === "mcc panel") e.parentAreaName = String(val || "").trim();
             else if (cleanHeader === "parent pcc panel" || cleanHeader === "pcc panel") e.parentPccName = String(val || "").trim();
             else if (cleanHeader === "machine tag" || cleanHeader === "machinetag") e.machineTag = String(val || "").trim();
+            else if (cleanHeader === "pq name" || cleanHeader === "pqname") e.pqName = val ? String(val).trim() : null;
+            else if (cleanHeader === "recording id" || cleanHeader === "recordingnameid" || cleanHeader === "recording name id") e.recordingNameId = val ? String(val).trim() : null;
             else if (cleanHeader === "starter type" || cleanHeader === "startertype") e.starterType = String(val || "DOL").trim().toUpperCase();
             else if (cleanHeader === "vfd frequency") e.vfdFrequency = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "rated kw" || cleanHeader === "ratedkw") e.ratedKw = Number(val) || 0;
             else if (cleanHeader === "rated hp" || cleanHeader === "ratedhp") e.ratedHp = val !== undefined && val !== "" ? Number(val) : null;
-            else if (cleanHeader === "voltage (v)" || cleanHeader === "voltage(v)" || cleanHeader === "voltage") e.voltage = val !== undefined && val !== "" ? Number(val) : null;
-            else if (cleanHeader === "current (a)" || cleanHeader === "current(i)" || cleanHeader === "current") e.current = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "voltage (v)" || cleanHeader === "voltage(v)" || cleanHeader === "voltage" || cleanHeader === "voltage (avg)") e.voltage = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "current (a)" || cleanHeader === "current(i)" || cleanHeader === "current" || cleanHeader === "current (avg)") e.current = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "v1") e.v1 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "v2") e.v2 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "v3") e.v3 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "uthd1") e.uthd1 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "uthd2") e.uthd2 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "uthd3") e.uthd3 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "i1") e.i1 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "i2") e.i2 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "i3") e.i3 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "ithd1") e.ithd1 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "ithd2") e.ithd2 = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "ithd3") e.ithd3 = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "kva") e.kva = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "power factor" || cleanHeader === "pf") e.pf = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "kvar") e.kvar = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "kvar (d)" || cleanHeader === "kvard") e.kvarD = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "kvar (q)" || cleanHeader === "kvarq") e.kvarQ = val !== undefined && val !== "" ? Number(val) : null;
+            else if (cleanHeader === "kvar style" || cleanHeader === "kvar lead/lag" || cleanHeader === "lead/lag") e.kvarLeadLag = val ? String(val).trim() : "Lag";
             else if (cleanHeader === "measured kw" || cleanHeader === "measuredkw") e.measuredKw = Number(val) || 0;
             else if (cleanHeader === "calculated power (kw)" || cleanHeader === "calculatedpower(kw)") e.calculatedPower = val !== undefined && val !== "" ? Number(val) : null;
             else if (cleanHeader === "load factor") e.loadFactor = val !== undefined && val !== "" ? Number(val) : null;
@@ -651,7 +676,16 @@ export function UploadButton() {
         recordedBy: pe.recordedBy || (existingId ? (currentEntries.find(x => x.id === existingId)?.recordedBy || currentUserName) : currentUserName),
         photoPath: pe.photoPath || null,
         createdAt: pe.createdAt,
-        createdById: "local-user"
+        createdById: "local-user",
+        // PQ fields mapping
+        entryType: pe.entryType || "CLAMP",
+        pqName: pe.pqName,
+        recordingNameId: pe.recordingNameId,
+        v1: pe.v1, v2: pe.v2, v3: pe.v3,
+        uthd1: pe.uthd1, uthd2: pe.uthd2, uthd3: pe.uthd3,
+        i1: pe.i1, i2: pe.i2, i3: pe.i3,
+        ithd1: pe.ithd1, ithd2: pe.ithd2, ithd3: pe.ithd3,
+        kvarD: pe.kvarD, kvarQ: pe.kvarQ, kvarLeadLag: pe.kvarLeadLag
       };
 
       if (existingId) {

@@ -156,6 +156,26 @@ model Entry {
   createdById     String
   createdBy       User        @relation(fields: [createdById], references: [id])
 
+  // New fields for PQ entry support
+  entryType       String?     @default("CLAMP") // "CLAMP" | "PQ"
+  pqName          String?
+  recordingNameId String?
+  v1              Float?
+  v2              Float?
+  v3              Float?
+  uthd1           Float?
+  uthd2           Float?
+  uthd3           Float?
+  i1              Float?
+  i2              Float?
+  i3              Float?
+  ithd1           Float?
+  ithd2           Float?
+  ithd3           Float?
+  kvarD           Float?
+  kvarQ           Float?
+  kvarLeadLag     String?
+
   @@index([areaId, createdAt])
 }
 

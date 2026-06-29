@@ -101,15 +101,16 @@ export function buildWorkbook(
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([mccHeaders, ...mccRows]), "MCC Panels");
 
-  // Sheet 5: Motor Loads (Entries)
-  const entryHeaders = [
+  // Sheet 5: Motor Loads Clamp (Entries)
+  const clampEntries = entries.filter(e => !e.entryType || e.entryType === "CLAMP");
+  const clampHeaders = [
     "Zone (Plant Input)", "Parent PCC Panel", "MCC Panel Name", "Machine Tag", "Starter Type", "VFD Frequency",
     "Rated kW", "Rated HP", "Voltage (V)", "Current (A)",
     "KVA", "Power Factor", "KVAr",
     "Measured kW", "Calculated Power (kW)", "Load Factor",
     "Description", "Photo Path", "Recorded By", "Date",
   ];
-  const entryRows = entries.map((e) => {
+  const clampRows = clampEntries.map((e) => {
     const area = areas.find((a) => a.id === e.areaId);
     const zone = zones.find((z) => z.id === area?.zoneId);
     
@@ -140,7 +141,58 @@ export function buildWorkbook(
       new Date(e.createdAt).toLocaleString("en-IN"),
     ];
   });
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([entryHeaders, ...entryRows]), "Motor Loads");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([clampHeaders, ...clampRows]), "Motor Loads Clamp");
+
+  // Sheet 6: Motor Loads PQ (Entries)
+  const pqEntries = entries.filter(e => e.entryType === "PQ");
+  const pqHeaders = [
+    "Zone (Plant Input)", "Parent PCC Panel", "MCC Panel Name", "Machine Tag", "PQ Name", "Recording ID",
+    "Starter Type", "VFD Frequency",
+    "V1", "V2", "V3", "Uthd1", "Uthd2", "Uthd3",
+    "I1", "I2", "I3", "Ithd1", "Ithd2", "Ithd3",
+    "Power Factor", "KVAr (D)", "KVAr (Q)", "KVAr Lead/Lag",
+    "Rated kW", "Rated HP", "Voltage (Avg)", "Current (Avg)", "KVA",
+    "Measured kW", "Calculated Power (kW)", "Load Factor",
+    "Description", "Photo Path", "Recorded By", "Date"
+  ];
+  const pqRows = pqEntries.map((e) => {
+    const area = areas.find((a) => a.id === e.areaId);
+    const zone = zones.find((z) => z.id === area?.zoneId);
+    
+    let pccName = "";
+    let mccName = "";
+    if (area) {
+      if (area.type === "MCC") {
+        mccName = area.name;
+        const parentPcc = areas.find(p => p.id === area.pccId);
+        pccName = parentPcc ? parentPcc.name : "Direct Feed";
+      } else {
+        pccName = area.name;
+        mccName = "Direct (No MCC)";
+      }
+    }
+
+    return [
+      zone?.name ?? "Unknown",
+      pccName || "Unknown",
+      mccName || "Unknown",
+      e.machineTag, e.pqName ?? "", e.recordingNameId ?? "",
+      e.starterType, e.vfdFrequency ?? "",
+      e.v1 ?? "", e.v2 ?? "", e.v3 ?? "",
+      e.uthd1 ?? "", e.uthd2 ?? "", e.uthd3 ?? "",
+      e.i1 ?? "", e.i2 ?? "", e.i3 ?? "",
+      e.ithd1 ?? "", e.ithd2 ?? "", e.ithd3 ?? "",
+      e.pf ?? "", e.kvarD ?? "", e.kvarQ ?? "", e.kvarLeadLag ?? "",
+      e.ratedKw, e.ratedHp ?? "", e.voltage ?? "", e.current ?? "",
+      e.kva ?? "",
+      e.measuredKw,
+      Number(e.calculatedPower).toFixed(2),
+      Number(e.loadFactor).toFixed(3),
+      e.description ?? "", e.photoPath ?? "", e.recordedBy ?? "Unknown",
+      new Date(e.createdAt).toLocaleString("en-IN"),
+    ];
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([pqHeaders, ...pqRows]), "Motor Loads PQ");
 
   // Sheet 6: APFC
   const apfcHeaders = [

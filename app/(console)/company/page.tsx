@@ -126,13 +126,7 @@ export default function CompanyPage() {
   };
 
   // Calculations for summary card
-  const mainGridSources = sources.filter((s) => s.sourceType === "Main Grid");
-  const renewableSources = sources.filter((s) => s.sourceType === "Solar" || s.sourceType === "Wind");
-
-  const mainGridTotal = mainGridSources.reduce((acc, s) => acc + (s.totalPower || 0), 0);
-  const renewableTotal = renewableSources.reduce((acc, s) => acc + (s.totalPower || 0), 0);
-  const calculatedOverallConsumption = mainGridTotal + renewableTotal;
-  const netGridConsumption = mainGridTotal - renewableTotal;
+  const calculatedOverallConsumption = sources.reduce((acc, s) => acc + (s.totalPower || 0), 0);
 
   async function save() {
     if (!form.companyName || !form.area) {
@@ -512,34 +506,27 @@ export default function CompanyPage() {
             </div>
           ))}
 
-          {/* Subtraction Naming Visualizer */}
+          {/* Additive Naming Visualizer */}
           <div className="mt-6 p-4 rounded-xl border border-cyan-500/20 bg-slate-950/60 backdrop-blur-md">
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-cyan-400 mb-2">Net Grid Consumption Calculation</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-cyan-400 mb-2">Total Grid Consumption Calculation</h4>
             <div className="space-y-2 text-sm text-slate-300">
-              <div className="flex justify-between border-b border-white/5 pb-1">
-                <span>Main Grid Total:</span>
-                <span className="font-mono font-bold text-slate-200">{mainGridTotal.toFixed(2)} kW</span>
-              </div>
-              <div className="flex justify-between border-b border-white/5 pb-1">
-                <span>Renewable (Solar + Wind) Total:</span>
-                <span className="font-mono font-bold text-amber-400">{renewableTotal.toFixed(2)} kW</span>
-              </div>
-              <div className="flex justify-between pt-1 text-base font-bold text-cyan-300">
-                <span>Net Grid Consumption:</span>
-                <span className="font-mono">{netGridConsumption.toFixed(2)} kW</span>
+              {sources.map((s, idx) => (
+                <div key={s.id || idx} className="flex justify-between border-b border-white/5 pb-1">
+                  <span className="capitalize">{s.name || `Source ${idx + 1}`} ({s.sourceType}):</span>
+                  <span className="font-mono font-bold text-slate-200">{(s.totalPower || 0).toFixed(2)} kW</span>
+                </div>
+              ))}
+              <div className="flex justify-between pt-2 text-base font-bold text-cyan-300">
+                <span>Total Grid Consumption:</span>
+                <span className="font-mono">{calculatedOverallConsumption.toFixed(2)} kW</span>
               </div>
               <div className="mt-3 p-3 bg-slate-900/60 rounded-lg text-xs text-slate-400 font-mono space-y-1">
                 <div className="text-cyan-400 font-bold">Breakdown & Formula:</div>
                 <div className="leading-relaxed">
-                  (
-                  {mainGridSources.length > 0
-                    ? mainGridSources.map((s) => `${s.name || "Unnamed"} (${s.totalPower || 0} kW)`).join(" + ")
+                  {sources.length > 0
+                    ? sources.map((s, idx) => `${s.name || `Source ${idx + 1}`} (${s.totalPower || 0} kW)`).join(" + ")
                     : "0 kW"}
-                  ) - (
-                  {renewableSources.length > 0
-                    ? renewableSources.map((s) => `${s.name || "Unnamed"} (${s.totalPower || 0} kW)`).join(" + ")
-                    : "0 kW"}
-                  ) = <span className="font-bold text-cyan-300">{netGridConsumption.toFixed(2)} kW</span>
+                  {" = "}<span className="font-bold text-cyan-300">{calculatedOverallConsumption.toFixed(2)} kW</span>
                 </div>
               </div>
             </div>
